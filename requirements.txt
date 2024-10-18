@@ -1,0 +1,3 @@
+Found device at /media/rob/CIRCUITPY, running CircuitPython 9.1.4.
+adafruit_usb_host_descriptors==0.1.3
+adafruit_midi==1.5.2
