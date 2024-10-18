@@ -19,4 +19,8 @@ Something that plugs into the USB port of a MIDI keyboard; no external power req
 * CicruitPython
 * Adafruit support libraries
 
+# Open Issues
+* How to preserve data across restarts?
+  * Write to a file, I assume. When? How often?
 
+  

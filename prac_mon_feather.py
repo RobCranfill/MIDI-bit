@@ -64,10 +64,10 @@ while True:
             print("\nTIMEOUT!")
             in_session = False
             session_total_time += time.monotonic() - session_start_time
-            print(f"  Total session time now {session_total_time}")
+            print(f"  Total session time now {session_total_time:.0f}")
         else:
             # show current session info
-            print(f"  Session now {time.monotonic() - session_start_time} seconds")
+            print(f"  Session now {time.monotonic() - session_start_time:.0f} seconds")
 
     else:
         pass
