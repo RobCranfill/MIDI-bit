@@ -11,7 +11,7 @@ Something that plugs into the USB port of a MIDI keyboard; no external power req
 
 # Hardware Requirements for this project
 * Adafruit "RP2040 with USB A Host" (Adafruit part number xxxx)
-* Adafruit 0.91" OLED Display (P/N xxxx)
+* Adafruit 0.91" OLED Display (P/N 4440)
 * Power supply - wall wart or lithium battery?
 
 # Software Requirements

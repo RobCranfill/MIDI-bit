@@ -11,6 +11,10 @@ import adafruit_usb_host_midi
 import usb.core
 import time
 
+import supervisor
+supervisor.runtime.autoreload = False  # CirPy 8 and above
+print(f"\n*** {supervisor.runtime.autoreload=}\n")
+
 
 MIDI_TIMEOUT = 1.0
 
@@ -36,7 +40,8 @@ midi_device = adafruit_midi.MIDI(midi_in=raw_midi, in_channel=0)
 last_event_time = time.monotonic()
 
 in_session = False
-
+session_start_time = 0
+session_total_time = 0
 
 while True:
     print(f"waiting for event; {in_session=}")
@@ -45,7 +50,9 @@ while True:
     if msg:
         print(f"midi msg: {msg} @ {event_time}")
         last_event_time = time.monotonic()
-        if not in_session:
+        if in_session:
+            pass
+        else:
             print("\nStarting session!")
             session_start_time = time.monotonic()
         in_session = True
@@ -54,10 +61,14 @@ while True:
 
     if in_session:
         if  event_time - last_event_time > SESSION_TIMEOUT:
-            print("TIMEOUT!")
+            print("\nTIMEOUT!")
             in_session = False
-        # else:
-        #     last_event_time = event_time
+            session_total_time += time.monotonic() - session_start_time
+            print(f"  Total session time now {session_total_time}")
+        else:
+            # show current session info
+            print(f"  Session now {time.monotonic() - session_start_time} seconds")
 
     else:
-        print("  not in session...")
+        pass
+        # print("  not in session...")
