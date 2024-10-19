@@ -83,7 +83,7 @@ while True:
         else:
             print("\nStarting session")
             session_start_time = time.monotonic()
-        in_session = True
+            in_session = True
     else:
         # print("  empty message")
         pass
