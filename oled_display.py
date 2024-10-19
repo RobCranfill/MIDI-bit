@@ -30,6 +30,7 @@ class oled_display:
         root = displayio.Group()
         display.root_group = root
 
+        # clear the screen to black
         color_bitmap = displayio.Bitmap(WIDTH, HEIGHT, 1)
         color_palette = displayio.Palette(1)
         color_palette[0] = 0x000000  # black
@@ -57,7 +58,7 @@ class oled_display:
 
 
     def set_text_1(self, text):
-        self.text_area_1._set_text(text, 1.0)
+        self.text_area_1._set_text(text, 2.0)
 
     def set_text_2(self, text):
         self.text_area_2._set_text(text, 1.0)

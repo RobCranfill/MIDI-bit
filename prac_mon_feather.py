@@ -59,7 +59,7 @@ while raw_midi is None:
             time.sleep(1)
             continue
 
-midi_device = adafruit_midi.MIDI(midi_in=raw_midi, in_channel=0)
+midi_device = adafruit_midi.MIDI(midi_in=raw_midi)
 disp.set_text_1("MIDI OK!")
 
 
