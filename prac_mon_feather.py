@@ -16,6 +16,7 @@ supervisor.runtime.autoreload = False  # CirPy 8 and above
 print(f"\n*** {supervisor.runtime.autoreload=}\n")
 
 
+
 MIDI_TIMEOUT = 1.0
 
 # seconds - ok? 
@@ -43,6 +44,11 @@ in_session = False
 session_start_time = 0
 session_total_time = 0
 
+
+import oled_display
+disp = oled_display.oled_display()
+disp.set_text("Hello")
+
 while True:
     print(f"waiting for event; {in_session=}")
     msg = midi_device.receive()
@@ -65,9 +71,12 @@ while True:
             in_session = False
             session_total_time += time.monotonic() - session_start_time
             print(f"  Total session time now {session_total_time:.0f}")
+            disp.set_text(f"Total: {session_total_time:.0f}")
         else:
             # show current session info
-            print(f"  Session now {time.monotonic() - session_start_time:.0f} seconds")
+            session_length = time.monotonic() - session_start_time
+            print(f"  Session now {session_length:.0f} seconds")
+            disp.set_text(f"Sesh: {session_length:.0f}")
 
     else:
         pass
