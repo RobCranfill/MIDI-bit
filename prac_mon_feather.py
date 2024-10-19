@@ -11,16 +11,25 @@ import adafruit_usb_host_midi
 import usb.core
 import time
 
+import adafruit_datetime as datetime
+
+
 import supervisor
 supervisor.runtime.autoreload = False  # CirPy 8 and above
 print(f"\n*** {supervisor.runtime.autoreload=}\n")
 
 
-
 MIDI_TIMEOUT = 1.0
-
-# seconds - ok? 
 SESSION_TIMEOUT = 5
+
+
+import oled_display
+disp = oled_display.oled_display()
+disp.set_text_1("Looking for MIDI...")
+
+
+def as_hms(seconds):
+    return str(datetime.timedelta(0, int(seconds)))
 
 
 print("Looking for midi devices...")
@@ -45,16 +54,12 @@ session_start_time = 0
 session_total_time = 0
 
 
-import oled_display
-disp = oled_display.oled_display()
-disp.set_text("Hello")
-
 while True:
     print(f"waiting for event; {in_session=}")
     msg = midi_device.receive()
     event_time = time.monotonic()
     if msg:
-        print(f"midi msg: {msg} @ {event_time}")
+        print(f"midi msg: {msg} @ {event_time:.1f}")
         last_event_time = time.monotonic()
         if in_session:
             pass
@@ -63,20 +68,21 @@ while True:
             session_start_time = time.monotonic()
         in_session = True
     else:
-        print("  empty message")
+        # print("  empty message")
+        pass
 
     if in_session:
         if  event_time - last_event_time > SESSION_TIMEOUT:
             print("\nTIMEOUT!")
             in_session = False
             session_total_time += time.monotonic() - session_start_time
-            print(f"  Total session time now {session_total_time:.0f}")
-            disp.set_text(f"Total: {session_total_time:.0f}")
+            print(f"  Total session time now {as_hms(session_total_time)}")
+            disp.set_text_2(f"  Total: {as_hms(session_total_time)}")
         else:
             # show current session info
             session_length = time.monotonic() - session_start_time
-            print(f"  Session now {session_length:.0f} seconds")
-            disp.set_text(f"Sesh: {session_length:.0f}")
+            print(f"  Session now {as_hms(session_length)}")
+            disp.set_text_1(f"Session: {as_hms(session_length)}")
 
     else:
         pass
