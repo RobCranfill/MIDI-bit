@@ -32,9 +32,11 @@ def blink(times, color_triple):
         pixel.fill((0,0,0))
         time.sleep(.1)
 
-# At startup, blink blue 5 times, delay, then read button.
+
+# At startup, blink blue 5 times, pause, then read button.
 blink(5, (0, 0, 255))
 time.sleep(1)
+
 
 # We will use "read/write"", unless the BOOT button is pressed.
 button = digitalio.DigitalInOut(BUTTON)
@@ -54,12 +56,10 @@ try:
     # Blink green if dev mode, red if run mode, yellow if failure to set mode.
     #  (fails if this isn't really boot time, for instance.)
     #
-    # time.sleep(2)
     if go_dev_mode:
         blink(4, (0, 255, 0))
     else:
         blink(4, (255, 0, 0))
-    # time.sleep(2)
 
 except:
     print("Failed! Can't change mode while developing.")

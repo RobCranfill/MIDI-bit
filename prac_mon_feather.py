@@ -73,6 +73,7 @@ disp.set_text_1("Looking for MIDI...")
 
 print("Looking for midi devices...")
 raw_midi = None
+attempt = 1
 while raw_midi is None:
     all_devices = usb.core.find(find_all=True)
     # print(f"{all_devices=}")
@@ -81,18 +82,26 @@ while raw_midi is None:
             raw_midi = adafruit_usb_host_midi.MIDI(device, timeout=MIDI_TIMEOUT)
             print(f"Found vendor 0x{device.idVendor:04x}, device 0x{device.idProduct:04x}")
         except ValueError:
-            print("No MIDI (or USB) device found. Sleeping....")
-            time.sleep(1)
             continue
+
+    # FIXME: we get one extraneous error message
+    print(f"No MIDI (or USB) device found ({attempt}). Sleeping....")
+    time.sleep(1)
+    attempt += 1
 
 midi_device = adafruit_midi.MIDI(midi_in=raw_midi)
 disp.set_text_1("MIDI OK!")
+time.sleep(1)
+
 
 last_event_time = time.monotonic()
 
 in_session = False
 session_start_time = 0
 session_total_time = old_session_time
+
+show_session_time(disp, 0)
+show_total_session_time(disp, session_total_time)
 
 
 while True:
@@ -125,7 +134,6 @@ while True:
             session_length = time.monotonic() - session_start_time
             print(f"  Session now {as_hms(session_length)}")
             show_session_time(disp, session_length)
-
 
     else:
         pass
