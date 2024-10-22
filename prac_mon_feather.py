@@ -12,11 +12,14 @@ from adafruit_midi.note_off import NoteOff
 from adafruit_midi.pitch_bend import PitchBend
 from adafruit_midi.control_change import ControlChange
 
+import usb_midi
+
 import usb.core
 import supervisor
 import time
 
 import oled_display
+
 
 SETTINGS_NAME = "pm_settings.text"
 
@@ -63,11 +66,11 @@ def read_session_data():
 supervisor.runtime.autoreload = False
 print(f"\n*** {supervisor.runtime.autoreload=}\n")
 
-
+# Load previous session data from text file.
 old_session_time = int(read_session_data())
 print(f"{old_session_time=}")
 
-
+# Update the display
 disp = oled_display.oled_display()
 disp.set_text_1("Looking for MIDI...")
 
@@ -81,6 +84,8 @@ while raw_midi is None:
         try:
             raw_midi = adafruit_usb_host_midi.MIDI(device, timeout=MIDI_TIMEOUT)
             print(f"Found vendor 0x{device.idVendor:04x}, device 0x{device.idProduct:04x}")
+            print(f"{device.product=}")
+            
         except ValueError:
             continue
 
@@ -90,8 +95,8 @@ while raw_midi is None:
     attempt += 1
 
 midi_device = adafruit_midi.MIDI(midi_in=raw_midi)
-disp.set_text_1("MIDI OK!")
-time.sleep(1)
+disp.set_text_1(f"Found {device.product}")
+time.sleep(2)
 
 
 last_event_time = time.monotonic()
