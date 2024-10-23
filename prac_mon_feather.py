@@ -18,7 +18,7 @@ import usb.core
 import supervisor
 import time
 
-import oled_display
+import two_line_oled
 
 
 SETTINGS_NAME = "pm_settings.text"
@@ -51,10 +51,10 @@ def as_hms(seconds):
     return str(datetime.timedelta(0, int(seconds)))
 
 def show_session_time(display, seconds):
-    display.set_text_1(f"Session: {as_hms(seconds)}")
+    display.set_text_2(f"Session: {as_hms(seconds)}")
 
 def show_total_session_time(display, seconds):
-    display.set_text_2(f"  Total: {as_hms(seconds)}")
+    display.set_text_1(as_hms(seconds))
 
 def write_session_data(data_str):
     with open(SETTINGS_NAME, "w") as f:
@@ -93,8 +93,8 @@ old_session_time = int(read_session_data())
 print(f"{old_session_time=}")
 
 # Update the display
-disp = oled_display.oled_display()
-disp.set_text_1("Looking for MIDI...")
+disp = two_line_oled.two_line_oled()
+disp.set_text_2("Looking for MIDI...")
 
 print("Looking for midi devices...")
 raw_midi = None
@@ -116,7 +116,7 @@ while raw_midi is None:
 
 midi_device = adafruit_midi.MIDI(midi_in=raw_midi)
 print(f"Found {device.product}")
-disp.set_text_1(f"Found {device.product}")
+disp.set_text_2(f"Found {device.product}")
 
 time.sleep(2)
 
@@ -136,8 +136,11 @@ while True:
     msg = midi_device.receive()
     event_time = time.monotonic()
     if msg:
+
         # print(f"midi msg: {msg} @ {event_time:.1f}")
-        disp.set_text_3(spin())
+
+        # disp.set_text_3(spin())
+
         last_event_time = time.monotonic()
         if in_session:
             pass
