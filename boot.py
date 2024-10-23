@@ -20,6 +20,8 @@ import neopixel
 import storage
 import time
 
+RUN_MODE_COLOR = (255, 0, 0)
+DEV_MODE_COLOR = (0, 255, 0)
 
 BUTTON = board.D7
 
@@ -57,9 +59,11 @@ try:
     #  (fails if this isn't really boot time, for instance.)
     #
     if go_dev_mode:
-        blink(3, (0, 255, 0))
+        blink(3, DEV_MODE_COLOR)
+        pixel.fill(DEV_MODE_COLOR)
     else:
-        blink(3, (255, 0, 0))
+        blink(3, RUN_MODE_COLOR)
+        pixel.fill(RUN_MODE_COLOR)
 
 except:
     print("Failed! Can't change mode while developing.")
