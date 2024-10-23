@@ -50,14 +50,20 @@ def write_session_data(data_str):
         f.close()
 
 def read_session_data():
-    result = 0
+    result = "0"
     try:
         with open(SETTINGS_NAME, "r") as f:
             result = f.read()
             f.close()
     except:
         print("No old session data? Continuing....")
+    
+    if len(result) == 0:
+        result = "0"
+
+    print(f"Returning {result=}")
     return result
+
 
 # ------------------------------------------------------------------------------
 # ------------------------------------------------------------------------------
@@ -90,7 +96,7 @@ while raw_midi is None:
             continue
 
     # FIXME: we get one extraneous error message
-    print(f"No MIDI (or USB) device found ({attempt}). Sleeping....")
+    print(f"No MIDI device found on try #{attempt}. Sleeping....")
     time.sleep(1)
     attempt += 1
 
@@ -114,7 +120,7 @@ while True:
     msg = midi_device.receive()
     event_time = time.monotonic()
     if msg:
-        print(f"midi msg: {msg} @ {event_time:.1f}")
+        # print(f"midi msg: {msg} @ {event_time:.1f}")
         disp.set_text_3(spin())
         last_event_time = time.monotonic()
         if in_session:
@@ -134,6 +140,13 @@ while True:
             session_total_time += time.monotonic() - session_start_time
             print(f"  Total session time now {as_hms(session_total_time)}")
             show_total_session_time(disp, session_total_time)
+
+            try:
+                write_session_data(str(int(session_total_time)))
+            except Exception as e:
+                print(f"Can't write! {e}")
+
+
         else:
             # update current session info
             session_length = time.monotonic() - session_start_time

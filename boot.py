@@ -3,10 +3,10 @@
 # This will be called at startup.
 # Blink the NeoPixel blue 5 times, then look at the BOOT button.
 #
-# If the button is not pushed, we are in "run" mode, 
+# If the button is not pushed, we want "run" mode, 
 # and will mount the flash in non-USB mode, so we can write to Flash/CIRCUITPY from CircuitPython.
 #
-# If the button is pushed, we are in "dev" mode,
+# If the button is pushed, we want "dev" mode,
 # and we can mount the flash as a writable CIRCUITPY drive, editable from the PC dev environment.
 #
 # So normally we will run in non-dev mode, so the code can write session data to the flash.
@@ -28,9 +28,9 @@ pixel = neopixel.NeoPixel(board.NEOPIXEL, 1)
 def blink(times, color_triple):
     for i in range(times):
         pixel.fill(color_triple)
-        time.sleep(.1)
+        time.sleep(.2)
         pixel.fill((0,0,0))
-        time.sleep(.1)
+        time.sleep(.2)
 
 
 # At startup, blink blue 5 times, pause, then read button.
@@ -42,8 +42,8 @@ time.sleep(1)
 button = digitalio.DigitalInOut(BUTTON)
 button.switch_to_input(pull=digitalio.Pull.UP)
 go_dev_mode = not button.value
-# print(f"Button -> {go_dev_mode=}")
-print(f"CIRCUITPY {'Unlocked: Dev Mode' if go_dev_mode is True else 'Locked: Run Mode'}")
+print(f"Button -> {go_dev_mode=}")
+# print(f"CIRCUITPY {'Unlocked: Dev Mode' if go_dev_mode is True else 'Locked: Run Mode'}")
 
 
 # For the second parameter of 'storage.remount()':
@@ -57,10 +57,10 @@ try:
     #  (fails if this isn't really boot time, for instance.)
     #
     if go_dev_mode:
-        blink(4, (0, 255, 0))
+        blink(3, (0, 255, 0))
     else:
-        blink(4, (255, 0, 0))
+        blink(3, (255, 0, 0))
 
 except:
     print("Failed! Can't change mode while developing.")
-    blink(2, (255, 255, 0))
+    blink(3, (255, 255, 0))
