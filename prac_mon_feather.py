@@ -12,6 +12,8 @@ from adafruit_midi.note_off import NoteOff
 from adafruit_midi.pitch_bend import PitchBend
 from adafruit_midi.control_change import ControlChange
 
+import board
+import neopixel
 import usb_midi
 
 import usb.core
@@ -28,6 +30,17 @@ spinner_index_ = 0
 
 MIDI_TIMEOUT = 1.0
 SESSION_TIMEOUT = 5
+
+
+RUN_MODE_COLOR = (255, 0, 0)
+DEV_MODE_COLOR = (0, 255, 0)
+def set_led_to_run_or_dev():
+    print(f"{is_filesystem_writeable()=}")
+    pixel = neopixel.NeoPixel(board.NEOPIXEL, 1)
+    if is_filesystem_writeable():
+        pixel.fill(RUN_MODE_COLOR)
+    else:
+        pixel.fill(DEV_MODE_COLOR)
 
 
 def is_filesystem_writeable():
@@ -77,6 +90,32 @@ def read_session_data():
     return result
 
 
+def find_midi_device(display):
+    print("Looking for midi devices...")
+    display.set_text_2("Looking for MIDI...")
+    raw_midi = None
+    attempt = 1
+    while raw_midi is None:
+        all_devices = usb.core.find(find_all=True)
+        for device in all_devices:
+            try:
+                raw_midi = adafruit_usb_host_midi.MIDI(device, timeout=MIDI_TIMEOUT)
+                print(f"Found vendor 0x{device.idVendor:04x}, device 0x{device.idProduct:04x}")
+                print(f"{device.product=}")
+            except ValueError:
+                continue
+
+        # FIXME: we get one extraneous error message
+        print(f"No MIDI device found on try #{attempt}. Sleeping....")
+        time.sleep(1)
+        attempt += 1
+
+    midi_device = adafruit_midi.MIDI(midi_in=raw_midi)
+    print(f"Found {device.product}")
+    display.set_text_2(f"Found {device.product}")
+    return midi_device
+
+
 # ------------------------------------------------------------------------------
 # ------------------------------------------------------------------------------
 
@@ -85,7 +124,8 @@ supervisor.runtime.autoreload = False
 print(f"\n*** {supervisor.runtime.autoreload=}\n")
 
 
-print(f"{is_filesystem_writeable()=}")
+# doesn't work 
+# set_led_to_run_or_dev()
 
 
 # Load previous session data from text file.
@@ -94,31 +134,6 @@ print(f"{old_session_time=}")
 
 # Update the display
 disp = two_line_oled.two_line_oled()
-disp.set_text_2("Looking for MIDI...")
-
-print("Looking for midi devices...")
-raw_midi = None
-attempt = 1
-while raw_midi is None:
-    all_devices = usb.core.find(find_all=True)
-    for device in all_devices:
-        try:
-            raw_midi = adafruit_usb_host_midi.MIDI(device, timeout=MIDI_TIMEOUT)
-            print(f"Found vendor 0x{device.idVendor:04x}, device 0x{device.idProduct:04x}")
-            print(f"{device.product=}")
-        except ValueError:
-            continue
-
-    # FIXME: we get one extraneous error message
-    print(f"No MIDI device found on try #{attempt}. Sleeping....")
-    time.sleep(1)
-    attempt += 1
-
-midi_device = adafruit_midi.MIDI(midi_in=raw_midi)
-print(f"Found {device.product}")
-disp.set_text_2(f"Found {device.product}")
-
-time.sleep(2)
 
 
 last_event_time = time.monotonic()
@@ -130,47 +145,57 @@ session_total_time = old_session_time
 show_session_time(disp, 0)
 show_total_session_time(disp, session_total_time)
 
-
+midi_device = None
 while True:
     # print(f"waiting for event; {in_session=}")
-    msg = midi_device.receive()
-    event_time = time.monotonic()
-    if msg:
 
-        # print(f"midi msg: {msg} @ {event_time:.1f}")
+    if midi_device is None:
+        midi_device = find_midi_device(disp)
+    else:
+        try:
+            msg = midi_device.receive()
+        except usb.core.USBError:
+            print("down!")
+            midi_device = None
+            continue # break?
+        
+        event_time = time.monotonic()
+        if msg:
 
-        # disp.set_text_3(spin())
+            # print(f"midi msg: {msg} @ {event_time:.1f}")
 
-        last_event_time = time.monotonic()
-        if in_session:
+            # disp.set_text_3(spin())
+
+            last_event_time = time.monotonic()
+            if in_session:
+                pass
+            else:
+                print("\nStarting session")
+                session_start_time = time.monotonic()
+                in_session = True
+        else:
+            # print("  empty message")
             pass
+
+        if in_session:
+            if  event_time - last_event_time > SESSION_TIMEOUT:
+                # print("\nTIMEOUT!")
+                in_session = False
+                session_total_time += time.monotonic() - session_start_time
+                print(f"  Total session time now {as_hms(session_total_time)}")
+                show_total_session_time(disp, session_total_time)
+
+                try:
+                    write_session_data(str(int(session_total_time)))
+                except Exception as e:
+                    print(f"Can't write! {e}")
+
+            else:
+                # update current session info
+                session_length = time.monotonic() - session_start_time
+                # print(f"  Session now {as_hms(session_length)}")
+                show_session_time(disp, session_length)
+
         else:
-            print("\nStarting session")
-            session_start_time = time.monotonic()
-            in_session = True
-    else:
-        # print("  empty message")
-        pass
-
-    if in_session:
-        if  event_time - last_event_time > SESSION_TIMEOUT:
-            # print("\nTIMEOUT!")
-            in_session = False
-            session_total_time += time.monotonic() - session_start_time
-            print(f"  Total session time now {as_hms(session_total_time)}")
-            show_total_session_time(disp, session_total_time)
-
-            try:
-                write_session_data(str(int(session_total_time)))
-            except Exception as e:
-                print(f"Can't write! {e}")
-
-        else:
-            # update current session info
-            session_length = time.monotonic() - session_start_time
-            # print(f"  Session now {as_hms(session_length)}")
-            show_session_time(disp, session_length)
-
-    else:
-        pass
-        # print("  not in session...")
+            pass
+            # print("  not in session...")

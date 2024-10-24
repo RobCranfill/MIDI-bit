@@ -20,6 +20,7 @@ import neopixel
 import storage
 import time
 
+
 RUN_MODE_COLOR = (255, 0, 0)
 DEV_MODE_COLOR = (0, 255, 0)
 
