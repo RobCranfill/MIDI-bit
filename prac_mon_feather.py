@@ -158,13 +158,13 @@ while True:
             print("down!")
             midi_device = None
             continue # break?
-        
+
         event_time = time.monotonic()
         if msg:
 
             # print(f"midi msg: {msg} @ {event_time:.1f}")
 
-            # disp.set_text_3(spin())
+            disp.set_text_3(spin())
 
             last_event_time = time.monotonic()
             if in_session:
@@ -189,6 +189,8 @@ while True:
                     write_session_data(str(int(session_total_time)))
                 except Exception as e:
                     print(f"Can't write! {e}")
+
+                disp.set_text_3(" ")
 
             else:
                 # update current session info

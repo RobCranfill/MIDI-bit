@@ -29,18 +29,26 @@ class two_line_oled:
         text_area_2.x =  0
         text_area_2.y = 28
 
+        text_area_3 = label.Label(terminalio.FONT, color=0xFFFFFF)
+        text_area_3.x = 112
+        text_area_3.y =  28
+
         root = displayio.Group()
         display.root_group = root
         root.append(text_area_1)
         root.append(text_area_2)
+        root.append(text_area_3)
 
         self.text_area_1 = text_area_1
         self.text_area_2 = text_area_2
-
+        self.text_area_3 = text_area_3
 
     def set_text_1(self, text):
         self.text_area_1.text = text
         
     def set_text_2(self, text):
         self.text_area_2.text = text
+
+    def set_text_3(self, text):
+        self.text_area_3.text = text
 

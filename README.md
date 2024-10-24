@@ -24,6 +24,7 @@ Something that plugs into the USB port of a MIDI keyboard; no external power req
   * 9.1.4 used so far.
 * Adafruit support libraries
   * See requirements.txt for complete list and latest versions used.
+* Font: fonts/LeagueSpartan-Bold-16.bdf
 
 # Open Issues
 * What data to preserve?
