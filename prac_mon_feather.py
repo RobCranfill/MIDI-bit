@@ -184,13 +184,13 @@ while True:
                 session_total_time += time.monotonic() - session_start_time
                 print(f"  Total session time now {as_hms(session_total_time)}")
                 show_total_session_time(disp, session_total_time)
+                disp.set_text_3(" ")
 
                 try:
                     write_session_data(str(int(session_total_time)))
                 except Exception as e:
                     print(f"Can't write! {e}")
-
-                disp.set_text_3(" ")
+                    disp.set_text_3("X")
 
             else:
                 # update current session info
