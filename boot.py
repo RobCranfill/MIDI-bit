@@ -54,7 +54,14 @@ print(f"Button -> {go_dev_mode=}")
 # Pass False to make the CIRCUITPY drive writable by CircuitPython.
 
 try:
+
+    # import supervisor
+    # print(f"{supervisor.runtime.usb_connected=}")
+
     storage.remount("/", go_dev_mode)
+
+    # print(f"{supervisor.runtime.usb_connected=}")
+
 
     # Blink green if dev mode, red if run mode, yellow if failure to set mode.
     #  (fails if this isn't really boot time, for instance.)

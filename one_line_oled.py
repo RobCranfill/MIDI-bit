@@ -8,6 +8,10 @@ from adafruit_display_text import label
 import adafruit_displayio_ssd1306
 
 
+# FONT_PATH = "fonts/LeagueSpartan-Bold-22.bdf"
+FONT_PATH = "fonts/cmuntb22.bdf"
+
+
 class one_line_oled:
 
     def __init__(self):
@@ -19,7 +23,7 @@ class one_line_oled:
         HEIGHT = 32
         display = adafruit_displayio_ssd1306.SSD1306(display_bus, width=WIDTH, height=HEIGHT)
 
-        font_main = bitmap_font.load_font("fonts/LeagueSpartan-Bold-22.bdf")
+        font_main = bitmap_font.load_font(FONT_PATH)
 
         text_area_1 = label.Label(font_main, color=0xFFFFFF)
         text_area_1.x =  0
@@ -56,7 +60,7 @@ class one_line_oled:
 def test():        
     print(f"\nTesting {__name__}....")
     olo = one_line_oled()
-    olo.set_text_1("0:23:34")
+    olo.set_text_1("00:23:34")
     olo.set_text_2("Test-a-roni!")
     olo.set_text_3("X")
     print("Test done.")

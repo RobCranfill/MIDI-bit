@@ -42,14 +42,16 @@ def set_led_to_run_or_dev():
         pixel.fill(RUN_MODE_COLOR)
     else:
         pixel.fill(DEV_MODE_COLOR)
-
+                        
 def is_filesystem_writeable():
     result = True
     try:
         with open("testfile.foo", "w") as f:
-            f.write()
-            f.close()
-    except:
+            print("opened OK!")
+            # f.write()
+            # f.close()
+    except Exception as e:
+        print(f"!exeption {e}")
         result = False
     return result
 
@@ -65,7 +67,7 @@ def as_hms(seconds):
 def show_session_time(display, seconds):
     display.set_text_2(f"Session: {as_hms(seconds)}")
 
-def show_total_session_time(display, seconds):
+def show_total_time(display, seconds):
     display.set_text_1(as_hms(seconds))
 
 def write_session_data(data_str):
@@ -79,11 +81,9 @@ def read_session_data():
             result = f.read()
     except:
         print("No old session data? Continuing....")
-    
     if len(result) == 0:
         result = "0"
-
-    print(f"read_session_data: returning '{result}'")
+    # print(f"read_session_data: returning '{result}'")
     return result
 
 
@@ -120,10 +120,7 @@ def find_midi_device(display):
 supervisor.runtime.autoreload = False
 print(f"\n*** {supervisor.runtime.autoreload=}\n")
 
-
-# doesn't work 
-# set_led_to_run_or_dev()
-
+set_led_to_run_or_dev()
 
 # Load previous session data from text file.
 old_session_time = int(read_session_data())
@@ -132,15 +129,14 @@ print(f"{old_session_time=}")
 # Update the display
 disp = one_line_oled.one_line_oled()
 
-
 last_event_time = time.monotonic()
 
 in_session = False
 session_start_time = 0
-session_total_time = old_session_time
+total_time = old_session_time
 
 show_session_time(disp, 0)
-show_total_session_time(disp, session_total_time)
+show_total_time(disp, total_time)
 
 midi_device = None
 while True:
@@ -178,13 +174,13 @@ while True:
             if  event_time - last_event_time > SESSION_TIMEOUT:
                 # print("\nTIMEOUT!")
                 in_session = False
-                session_total_time += time.monotonic() - session_start_time
-                print(f"  Total session time now {as_hms(session_total_time)}")
-                show_total_session_time(disp, session_total_time)
+                total_time += time.monotonic() - session_start_time
+                print(f"  Total session time now {as_hms(total_time)}")
+                show_total_time(disp, total_time)
                 disp.set_text_3(" ")
 
                 try:
-                    write_session_data(str(int(session_total_time)))
+                    write_session_data(str(int(total_time)))
                 except Exception as e:
                     print(f"Can't write! {e}")
                     disp.set_text_3("X")
@@ -194,6 +190,9 @@ while True:
                 session_length = time.monotonic() - session_start_time
                 # print(f"  Session now {as_hms(session_length)}")
                 show_session_time(disp, session_length)
+
+                # UPDATE ALWAYS?
+                show_total_time(disp, total_time)
 
         else:
             pass
