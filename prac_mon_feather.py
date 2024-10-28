@@ -20,7 +20,8 @@ import usb.core
 import supervisor
 import time
 
-import two_line_oled
+# import two_line_oled
+import one_line_oled
 
 
 SETTINGS_NAME = "pm_settings.text"
@@ -42,7 +43,6 @@ def set_led_to_run_or_dev():
     else:
         pixel.fill(DEV_MODE_COLOR)
 
-
 def is_filesystem_writeable():
     result = True
     try:
@@ -52,7 +52,6 @@ def is_filesystem_writeable():
     except:
         result = False
     return result
-
 
 # display a little wiggling text characater.
 def spin():
@@ -72,14 +71,12 @@ def show_total_session_time(display, seconds):
 def write_session_data(data_str):
     with open(SETTINGS_NAME, "w") as f:
         f.write(data_str)
-        # f.close()
 
 def read_session_data():
     result = "0"
     try:
         with open(SETTINGS_NAME, "r") as f:
             result = f.read()
-            # f.close()
     except:
         print("No old session data? Continuing....")
     
@@ -133,7 +130,7 @@ old_session_time = int(read_session_data())
 print(f"{old_session_time=}")
 
 # Update the display
-disp = two_line_oled.two_line_oled()
+disp = one_line_oled.one_line_oled()
 
 
 last_event_time = time.monotonic()
