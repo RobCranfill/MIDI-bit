@@ -1,62 +1,65 @@
 # Practice Monitor for Feather RP2040 Feather with USB Host
 
+# stdlibs
+import board
+import neopixel
+import supervisor
+import time
+import usb.core
+
+# adafruit libs
 import adafruit_datetime as datetime
 import adafruit_midi
 import adafruit_midi.midi_message
 
+# FIXME: this seems clunky. can't I do this more succinctly?
+from adafruit_midi.control_change import ControlChange
+from adafruit_midi.note_off import NoteOff
+from adafruit_midi.note_on import NoteOn
+from adafruit_midi.pitch_bend import PitchBend
+
 import adafruit_usb_host_midi
 
-# TODO: how can i import all these so I don't get 'MIDIUnknownEvent'?
-from adafruit_midi.note_on import NoteOn
-from adafruit_midi.note_off import NoteOff
-from adafruit_midi.pitch_bend import PitchBend
-from adafruit_midi.control_change import ControlChange
-
-import board
-import neopixel
-import usb_midi
-
-import usb.core
-import supervisor
-import time
-
-# import two_line_oled
+# Our libs
 import one_line_oled
 
 
+import microcontroller
+test_dev_mode = False
+if microcontroller.nvm[0:1] == b"\xff":
+    test_dev_mode = True
+print(f"{test_dev_mode=}")
+
+
+MIDI_TIMEOUT = 1.0
+SESSION_TIMEOUT = 1 # we kinda dont "so" sessions any more!
 SETTINGS_NAME = "pm_settings.text"
+
+
+RUN_MODE_COLOR = (128, 0, 0)
+DEV_MODE_COLOR = (0, 128, 0)
+def set_led_to_run_or_dev():
+    pixel = neopixel.NeoPixel(board.NEOPIXEL, 1)
+    if test_dev_mode:
+    # if is_filesystem_writeable():
+        pixel.fill(DEV_MODE_COLOR)
+    else:
+        pixel.fill(RUN_MODE_COLOR)
+
+# def is_filesystem_writeable():
+#     result = True
+#     try:
+#         with open("testfile.foo", "w") as f:
+#             print("is_filesystem_writeable: OK!")
+#     except Exception as e:
+#         print(f"(OK?) is_filesystem_writeable: {e}")
+#         result = False
+#     return result
 
 SPINNER = "|/-\\"
 spinner_index_ = 0
-
-MIDI_TIMEOUT = 1.0
-SESSION_TIMEOUT = 5
-
-
-RUN_MODE_COLOR = (255, 0, 0)
-DEV_MODE_COLOR = (0, 255, 0)
-def set_led_to_run_or_dev():
-    print(f"{is_filesystem_writeable()=}")
-    pixel = neopixel.NeoPixel(board.NEOPIXEL, 1)
-    if is_filesystem_writeable():
-        pixel.fill(RUN_MODE_COLOR)
-    else:
-        pixel.fill(DEV_MODE_COLOR)
-                        
-def is_filesystem_writeable():
-    result = True
-    try:
-        with open("testfile.foo", "w") as f:
-            print("opened OK!")
-            # f.write()
-            # f.close()
-    except Exception as e:
-        print(f"!exeption {e}")
-        result = False
-    return result
-
-# display a little wiggling text characater.
 def spin():
+    '''Return the next wiggling text characater.'''
     global spinner_index_
     spinner_index_ = (spinner_index_+1) % len(SPINNER)
     return SPINNER[spinner_index_]
@@ -71,6 +74,8 @@ def show_total_time(display, seconds):
     display.set_text_1(as_hms(seconds))
 
 def write_session_data(session_seconds):
+    '''This will throw an exception if the filesystem isn't writable.'''
+    print(f"write_session_data: {int(session_seconds)}")
     with open(SETTINGS_NAME, "w") as f:
         f.write(str(int(session_seconds)))
 
@@ -85,7 +90,6 @@ def read_session_data():
         result = "0"
     # print(f"read_session_data: returning '{result}'")
     return result
-
 
 def find_midi_device(display):
     print("Looking for midi devices...")
@@ -102,7 +106,7 @@ def find_midi_device(display):
             except ValueError:
                 continue
 
-        # FIXME: we get one extraneous error message
+        # FIXME: we always get one extraneous error message
         print(f"No MIDI device found on try #{attempt}. Sleeping....")
         time.sleep(1)
         attempt += 1
@@ -124,7 +128,7 @@ set_led_to_run_or_dev()
 
 # Load previous session data from text file.
 total_seconds = int(read_session_data())
-print(f"{total_seconds=}")
+print(f"read_session_data: {total_seconds=}")
 
 # Update the display
 disp = one_line_oled.one_line_oled()
@@ -180,14 +184,14 @@ while True:
                 disp.set_text_3(" ")
 
                 total_seconds += session_length
-                print(f"WRITING {total_seconds}")
-
                 try:
                     write_session_data(total_seconds)
                     disp.set_text_3("!")
                 except Exception as e:
                     print(f"Can't write! {e}")
                     disp.set_text_3("X")
+                    time.sleep(2)
+                    disp.set_text_3("")
 
             else:
                 # update current session info

@@ -15,7 +15,7 @@
 
 import board
 import digitalio
-import json
+import microcontroller
 import neopixel
 import storage
 import time
@@ -55,13 +55,13 @@ print(f"Button -> {go_dev_mode=}")
 
 try:
 
-    # import supervisor
-    # print(f"{supervisor.runtime.usb_connected=}")
-
     storage.remount("/", go_dev_mode)
 
-    # print(f"{supervisor.runtime.usb_connected=}")
-
+    # Save state to NVM, to pass to main code.
+    if go_dev_mode:
+        microcontroller.nvm[0:1] = b"\xff"
+    else:
+        microcontroller.nvm[0:1] = b"\x00"
 
     # Blink green if dev mode, red if run mode, yellow if failure to set mode.
     #  (fails if this isn't really boot time, for instance.)

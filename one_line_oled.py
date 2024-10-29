@@ -17,7 +17,13 @@ class one_line_oled:
     def __init__(self):
 
         displayio.release_displays()
-        i2c = board.I2C()
+
+        try:
+            i2c = board.I2C()
+        except:
+            print("Is the I2C wiring correct?")
+            return
+
         display_bus = displayio.I2CDisplay(i2c, device_address=0x3C)
         WIDTH = 128
         HEIGHT = 32
