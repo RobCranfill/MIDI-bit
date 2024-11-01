@@ -24,6 +24,7 @@ import adafruit_usb_host_midi
 # Our libs
 import one_line_oled
 
+IDLE_TIMEOUT = 60 # for display blanking
 
 MIDI_TIMEOUT = 1.0
 SESSION_TIMEOUT = 15
@@ -50,11 +51,13 @@ RUN_MODE_COLOR = (128, 0, 0)
 DEV_MODE_COLOR = (0, 128, 0)
 def set_run_or_dev():
     global SESSION_TIMEOUT
+    global IDLE_TIMEOUT
     pixel = neopixel.NeoPixel(board.NEOPIXEL, 1)
     if _dev_mode:
         pixel.fill(DEV_MODE_COLOR)
         SESSION_TIMEOUT = 5
-        print(f"DEV MODE: Setting timeout to {SESSION_TIMEOUT}")
+        IDLE_TIMEOUT = 10
+        print(f"DEV MODE: Setting timeouts to {SESSION_TIMEOUT=}, {IDLE_TIMEOUT}")
     else:
         pixel.fill(RUN_MODE_COLOR)
 
@@ -145,8 +148,8 @@ session_start_time = 0
 show_total_time(disp, total_seconds)
 
 
-idle_start_time = 0
-IDLE_TIMEOUT = 10
+idle_start_time = time.monotonic()
+
 
 midi_device = None
 while True:
@@ -219,11 +222,9 @@ while True:
                 show_total_time(disp, total_seconds + session_length)
 
         else:
-            print("  not in session...")
-            # pass
-
+            # print("  not in session...")
             if time.monotonic() - idle_start_time > IDLE_TIMEOUT:
-                print("idle timeout!")
+                # print("idle timeout!")
                 disp.blank_screen()
-                flash_led(0.1)
+                flash_led(0.01)
 
