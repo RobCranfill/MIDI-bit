@@ -62,7 +62,11 @@ class one_line_oled:
     def set_text_3(self, text):
         self.text_area_3.text = text
 
-
+    def blank_screen(self):
+        self.set_text_1("")
+        self.set_text_2("")
+        self.set_text_3("")
+        
 def test():        
     print(f"\nTesting {__name__}....")
     olo = one_line_oled()

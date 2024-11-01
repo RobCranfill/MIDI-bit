@@ -136,6 +136,8 @@ session_start_time = 0
 show_total_time(disp, total_seconds)
 
 
+idle_start_time = 0
+IDLE_TIMEOUT = 10
 
 midi_device = None
 while True:
@@ -147,7 +149,7 @@ while True:
         try:
             msg = midi_device.receive()
         except usb.core.USBError:
-            print("down!")
+            print("usb.core.USBError!")
             midi_device = None
             continue # break?
 
@@ -170,7 +172,7 @@ while True:
             pass
 
         if in_session:
-            if  event_time - last_event_time > SESSION_TIMEOUT:
+            if event_time - last_event_time > SESSION_TIMEOUT:
                 # print("\nTIMEOUT!")
                 in_session = False
                 # total_seconds += time.monotonic() - session_start_time
@@ -195,6 +197,9 @@ while True:
                         time.sleep(2)
                         disp.set_text_3("")
 
+                # deal with screen timeout
+                idle_start_time = time.monotonic()
+
             else:
                 # update current session info
                 session_length = time.monotonic() - session_start_time
@@ -205,5 +210,10 @@ while True:
                 show_total_time(disp, total_seconds + session_length)
 
         else:
-            pass
-            # print("  not in session...")
+            print("  not in session...")
+            # pass
+
+            if time.monotonic() - idle_start_time > IDLE_TIMEOUT:
+                print("idle timeout!")
+                disp.blank_screen()
+
