@@ -2,6 +2,7 @@
 
 # stdlibs
 import board
+import digitalio
 import neopixel
 import supervisor
 import time
@@ -35,6 +36,14 @@ _dev_mode = False
 if microcontroller.nvm[0:1] == b"\xff":
     _dev_mode = True
 print(f"{_dev_mode=}")
+
+_led = digitalio.DigitalInOut(board.LED)
+_led.direction = digitalio.Direction.OUTPUT
+def flash_led(seconds):
+    global _led
+    _led.value = True
+    time.sleep(seconds)
+    _led.value = False
 
 
 RUN_MODE_COLOR = (128, 0, 0)
@@ -216,4 +225,5 @@ while True:
             if time.monotonic() - idle_start_time > IDLE_TIMEOUT:
                 print("idle timeout!")
                 disp.blank_screen()
+                flash_led(0.1)
 
