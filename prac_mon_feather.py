@@ -23,38 +23,32 @@ import adafruit_usb_host_midi
 # Our libs
 import one_line_oled
 
-# Read the non-volitile memory for the dev mode set by boot.py.
-import microcontroller
-test_dev_mode = False
-if microcontroller.nvm[0:1] == b"\xff":
-    test_dev_mode = True
-print(f"{test_dev_mode=}")
-
 
 MIDI_TIMEOUT = 1.0
-SESSION_TIMEOUT = 1 # we kinda dont "so" sessions any more!
+SESSION_TIMEOUT = 15
 SETTINGS_NAME = "pm_settings.text"
+
+
+# Read the non-volitile memory for the dev mode set by boot.py.
+import microcontroller
+_dev_mode = False
+if microcontroller.nvm[0:1] == b"\xff":
+    _dev_mode = True
+print(f"{_dev_mode=}")
 
 
 RUN_MODE_COLOR = (128, 0, 0)
 DEV_MODE_COLOR = (0, 128, 0)
-def set_led_to_run_or_dev():
+def set_run_or_dev():
+    global SESSION_TIMEOUT
     pixel = neopixel.NeoPixel(board.NEOPIXEL, 1)
-    if test_dev_mode:
-    # if is_filesystem_writeable():
+    if _dev_mode:
         pixel.fill(DEV_MODE_COLOR)
+        SESSION_TIMEOUT = 5
+        print(f"DEV MODE: Setting timeout to {SESSION_TIMEOUT}")
     else:
         pixel.fill(RUN_MODE_COLOR)
 
-# def is_filesystem_writeable():
-#     result = True
-#     try:
-#         with open("testfile.foo", "w") as f:
-#             print("is_filesystem_writeable: OK!")
-#     except Exception as e:
-#         print(f"(OK?) is_filesystem_writeable: {e}")
-#         result = False
-#     return result
 
 SPINNER = "|/-\\"
 spinner_index_ = 0
@@ -74,7 +68,7 @@ def show_total_time(display, seconds):
     display.set_text_1(as_hms(seconds))
 
 def write_session_data(session_seconds):
-    '''This will throw an exception if the filesystem isn't writable.'''
+    '''This will throw an exception if the filesystem isn't writable. Catch it higher up.'''
     print(f"write_session_data: {int(session_seconds)}")
     with open(SETTINGS_NAME, "w") as f:
         f.write(str(int(session_seconds)))
@@ -124,7 +118,7 @@ def find_midi_device(display):
 supervisor.runtime.autoreload = False
 print(f"\n*** {supervisor.runtime.autoreload=}\n")
 
-set_led_to_run_or_dev()
+set_run_or_dev()
 
 # Load previous session data from text file.
 total_seconds = int(read_session_data())
@@ -140,6 +134,7 @@ session_start_time = 0
 
 # show_session_time(disp, 0)
 show_total_time(disp, total_seconds)
+
 
 
 midi_device = None
@@ -186,12 +181,19 @@ while True:
                 total_seconds += session_length
                 try:
                     write_session_data(total_seconds)
-                    disp.set_text_3("!")
+                    disp.set_text_3("!") # happy write
                 except Exception as e:
-                    print(f"Can't write! {e}")
-                    disp.set_text_3("X")
-                    time.sleep(2)
-                    disp.set_text_3("")
+
+                    # we expect write errors in dev mode.
+                    if _dev_mode:
+                        print("Can't write, as expected")
+                    else:
+                        print(f"Can't write! {e}")
+
+                        # Show an "X" to indicate failed write. FIXME.
+                        disp.set_text_3("X")
+                        time.sleep(2)
+                        disp.set_text_3("")
 
             else:
                 # update current session info
