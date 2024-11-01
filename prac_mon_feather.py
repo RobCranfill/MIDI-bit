@@ -23,7 +23,7 @@ import adafruit_usb_host_midi
 # Our libs
 import one_line_oled
 
-
+# Read the non-volitile memory for the dev mode set by boot.py.
 import microcontroller
 test_dev_mode = False
 if microcontroller.nvm[0:1] == b"\xff":

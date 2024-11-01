@@ -10,8 +10,9 @@
 # and we can mount the flash as a writable CIRCUITPY drive, editable from the PC dev environment.
 #
 # So normally we will run in non-dev mode, so the code can write session data to the flash.
-
+#
 # see https://learn.adafruit.com/circuitpython-essentials?view=all#circuitpython-storage
+#
 
 import board
 import digitalio
@@ -41,11 +42,11 @@ blink(5, (0, 0, 255))
 time.sleep(1)
 
 
-# We will use "read/write"", unless the BOOT button is pressed.
+# We will use "read/write" mode unless the BOOT button is pressed.
 button = digitalio.DigitalInOut(BUTTON)
 button.switch_to_input(pull=digitalio.Pull.UP)
 go_dev_mode = not button.value
-print(f"Button -> {go_dev_mode=}")
+print(f"Setting {go_dev_mode=}")
 # print(f"CIRCUITPY {'Unlocked: Dev Mode' if go_dev_mode is True else 'Locked: Run Mode'}")
 
 
