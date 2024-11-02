@@ -21,6 +21,10 @@ import neopixel
 import storage
 import time
 
+# import midibit_defines
+
+MAGIC_NUMBER_RUN_MODE = 0x12
+MAGIC_NUMBER_DEV_MODE = 0x34
 
 RUN_MODE_COLOR = (255, 0, 0)
 DEV_MODE_COLOR = (0, 255, 0)
@@ -42,30 +46,30 @@ blink(5, (0, 0, 255))
 time.sleep(1)
 
 
-# We will use "read/write" mode unless the BOOT button is pressed.
+# We will go to "read/write" mode unless the BOOT button is pressed.
+#
 button = digitalio.DigitalInOut(BUTTON)
 button.switch_to_input(pull=digitalio.Pull.UP)
 go_dev_mode = not button.value
 print(f"Setting {go_dev_mode=}")
 # print(f"CIRCUITPY {'Unlocked: Dev Mode' if go_dev_mode is True else 'Locked: Run Mode'}")
 
-
-# For the second parameter of 'storage.remount()':
-# Pass True to make the CIRCUITPY drive writable by your computer.
-# Pass False to make the CIRCUITPY drive writable by CircuitPython.
-
 try:
+
+    # For the second parameter of 'storage.remount()':
+    # Pass True to make the CIRCUITPY drive writable by your computer.
+    # Pass False to make the CIRCUITPY drive writable by CircuitPython.
 
     storage.remount("/", go_dev_mode)
 
-    # Save state to NVM, to pass to main code.
-    if go_dev_mode:
-        microcontroller.nvm[0:1] = b"\xff"
-    else:
-        microcontroller.nvm[0:1] = b"\x00"
+    # Save state to NVM, to pass to main code. (thanks, danhalbert!)
+    mode = microcontroller.nvm[0] == MAGIC_NUMBER_DEV_MODE
+    if mode != go_dev_mode:
+        microcontroller.nvm[0] = MAGIC_NUMBER_DEV_MODE if go_dev_mode else MAGIC_NUMBER_RUN_MODE
+        print(f"Changed NVM to {MAGIC_NUMBER_DEV_MODE if go_dev_mode else MAGIC_NUMBER_RUN_MODE:02x}")
 
-    # Blink green if dev mode, red if run mode, yellow if failure to set mode.
-    #  (fails if this isn't really boot time, for instance.)
+
+    # Blink & hold: green if dev mode, red if run mode, yellow if problem.
     #
     if go_dev_mode:
         blink(3, DEV_MODE_COLOR)
@@ -74,6 +78,7 @@ try:
         blink(3, RUN_MODE_COLOR)
         pixel.fill(RUN_MODE_COLOR)
 
-except:
-    print("Failed! Can't change mode while developing.")
+except Exception as e:
+    print(f"Failed! Can't change mode while developing. ({e})")
     blink(3, (255, 255, 0))
+    pixel.fill((255, 255, 0))
