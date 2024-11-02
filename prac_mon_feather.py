@@ -102,6 +102,9 @@ def find_midi_device(display):
     display.set_text_2("Looking for MIDI...")
     raw_midi = None
     attempt = 1
+    
+    no_midi_idle_start_time = time.monotonic()
+
     while raw_midi is None:
         all_devices = usb.core.find(find_all=True)
         for device in all_devices:
@@ -115,11 +118,22 @@ def find_midi_device(display):
         # FIXME: we always get one extraneous error message
         print(f"No MIDI device found on try #{attempt}. Sleeping....")
         time.sleep(1)
+
+        if time.monotonic() - no_midi_idle_start_time > IDLE_TIMEOUT:
+            print("no-MIDI idle timeout!")
+            display.blank_screen()
+            flash_led(0.01)
+            time.sleep(0.1)
+            flash_led(0.01)
+            time.sleep(0.1)
+            flash_led(0.01)
+
         attempt += 1
 
     midi_device = adafruit_midi.MIDI(midi_in=raw_midi)
     print(f"Found {device.product}")
     display.set_text_2(f"Found {device.product}")
+    time.sleep(2) # FIXME - arbitrary
     return midi_device
 
 
