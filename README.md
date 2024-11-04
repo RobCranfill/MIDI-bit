@@ -41,8 +41,7 @@ Stretch goals: Internet connectivity, with an app to slice and dice the data.
   *  TODO: Power from Roland USB A port seems problematic.
 * Use the BOOT button for user input.
   * Is just one button enough?
-
-
+* <b>or...</b> Use keyboard key sequences for control? COOL! :-)
 
 
 # Software Requirements
@@ -58,7 +57,6 @@ Stretch goals: Internet connectivity, with an app to slice and dice the data.
 * What data to preserve?
   * Just total practice time? Is "session" time useful? Keypresses??
 * Without some kind of networking, how can we ever export data?
-
 
 # Closed Issues
    * <strike>How to preserve data across restarts?
