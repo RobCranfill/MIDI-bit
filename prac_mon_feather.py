@@ -27,10 +27,12 @@ import one_line_oled
 MAGIC_NUMBER_RUN_MODE = 0x12 # 18
 MAGIC_NUMBER_DEV_MODE = 0x34 # 52
 
-MIDI_TIMEOUT = 0.1
+# TODO: how does this affect responsiveness? buffering? what-all??
+MIDI_TIMEOUT = .1
 
+# Defaults will be changed if dev mode
 SESSION_TIMEOUT = 15
-IDLE_TIMEOUT = 60 # for display blanking
+DISPLAY_IDLE_TIMEOUT = 60 # for display blanking
 
 SETTINGS_NAME = "pm_settings.text"
 
@@ -55,13 +57,13 @@ RUN_MODE_COLOR = (128, 0, 0)
 DEV_MODE_COLOR = (0, 128, 0)
 def set_run_or_dev():
     global SESSION_TIMEOUT
-    global IDLE_TIMEOUT
+    global DISPLAY_IDLE_TIMEOUT
     pixel = neopixel.NeoPixel(board.NEOPIXEL, 1)
     if _dev_mode:
         pixel.fill(DEV_MODE_COLOR)
         SESSION_TIMEOUT = 5
-        IDLE_TIMEOUT = 10
-        print(f"DEV MODE: Setting timeouts to {SESSION_TIMEOUT=}, {IDLE_TIMEOUT=}\n")
+        DISPLAY_IDLE_TIMEOUT = 10
+        print(f"DEV MODE: Setting timeouts to {SESSION_TIMEOUT=}, {DISPLAY_IDLE_TIMEOUT=}\n")
     else:
         pixel.fill(RUN_MODE_COLOR)
 
@@ -123,11 +125,10 @@ def find_midi_device(display):
         print(f"No MIDI device found on try #{attempt}. Sleeping....")
         time.sleep(1)
 
-        if time.monotonic() - no_midi_idle_start_time > IDLE_TIMEOUT:
-            print("no-MIDI idle timeout!")
+        # No-MIDI timeout; flass LED twice?
+        if time.monotonic() - no_midi_idle_start_time > DISPLAY_IDLE_TIMEOUT:
+            # print("no-MIDI idle timeout!")
             display.blank_screen()
-            flash_led(0.01)
-            time.sleep(0.1)
             flash_led(0.01)
             time.sleep(0.1)
             flash_led(0.01)
@@ -166,6 +167,7 @@ show_total_time(disp, total_seconds)
 last_displayed_time = int(total_seconds)
 
 idle_start_time = time.monotonic()
+idle_led_blip_time = idle_start_time
 
 midi_device = None
 while True:
@@ -230,9 +232,6 @@ while True:
                 session_length = time.monotonic() - session_start_time
                 # print(f"  Session now {as_hms(session_length)}")
 
-                # UPDATE ALWAYS? 
-                # TODO: OR JUST ONCE PER SECOND?
-
                 show_total_time(disp, total_seconds + session_length)
 
                 new_total = total_seconds + session_length
@@ -243,8 +242,14 @@ while True:
 
         else:
             # print("  not in session...")
-            if time.monotonic() - idle_start_time > IDLE_TIMEOUT:
+
+            # With-MIDI display timeout
+            if time.monotonic() - idle_start_time > DISPLAY_IDLE_TIMEOUT:
                 # print("idle timeout!")
                 disp.blank_screen()
-                flash_led(0.01)
+
+                # Single flash of LED,only once per second
+                if time.monotonic() - idle_led_blip_time > 1:
+                    flash_led(0.01)
+                    idle_led_blip_time = time.monotonic()
 
