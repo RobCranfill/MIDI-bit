@@ -27,10 +27,11 @@ import one_line_oled
 MAGIC_NUMBER_RUN_MODE = 0x12 # 18
 MAGIC_NUMBER_DEV_MODE = 0x34 # 52
 
+MIDI_TIMEOUT = 0.1
+
+SESSION_TIMEOUT = 15
 IDLE_TIMEOUT = 60 # for display blanking
 
-MIDI_TIMEOUT = 1.0
-SESSION_TIMEOUT = 15
 SETTINGS_NAME = "pm_settings.text"
 
 
@@ -39,7 +40,7 @@ import microcontroller
 _dev_mode = False
 if microcontroller.nvm[0] == MAGIC_NUMBER_DEV_MODE:
     _dev_mode = True
-print(f"{microcontroller.nvm[0]=} -> {_dev_mode=} ({MAGIC_NUMBER_DEV_MODE=})")
+# print(f"{microcontroller.nvm[0]=} -> {_dev_mode=} ({MAGIC_NUMBER_DEV_MODE=})")
 
 _led = digitalio.DigitalInOut(board.LED)
 _led.direction = digitalio.Direction.OUTPUT
@@ -60,7 +61,7 @@ def set_run_or_dev():
         pixel.fill(DEV_MODE_COLOR)
         SESSION_TIMEOUT = 5
         IDLE_TIMEOUT = 10
-        print(f"DEV MODE: Setting timeouts to {SESSION_TIMEOUT=}, {IDLE_TIMEOUT}")
+        print(f"DEV MODE: Setting timeouts to {SESSION_TIMEOUT=}, {IDLE_TIMEOUT=}\n")
     else:
         pixel.fill(RUN_MODE_COLOR)
 
@@ -136,7 +137,7 @@ def find_midi_device(display):
     midi_device = adafruit_midi.MIDI(midi_in=raw_midi)
     print(f"Found {device.product}")
     display.set_text_2(f"Found {device.product}")
-    time.sleep(2) # FIXME - arbitrary
+    time.sleep(2) # FIXME ? arbitrary
     return midi_device
 
 
@@ -145,11 +146,11 @@ def find_midi_device(display):
 
 # turn off auto-reload, cuz it's a pain
 supervisor.runtime.autoreload = False
-print(f"\n*** {supervisor.runtime.autoreload=}\n")
+print(f"{supervisor.runtime.autoreload=}")
 
 set_run_or_dev()
 
-# Load previous session data from text file.
+# Load previous total time from text file.
 total_seconds = int(read_session_data())
 print(f"read_session_data: {total_seconds=}")
 
@@ -161,12 +162,10 @@ last_event_time = time.monotonic()
 in_session = False
 session_start_time = 0
 
-# show_session_time(disp, 0)
 show_total_time(disp, total_seconds)
-
+last_displayed_time = total_seconds
 
 idle_start_time = time.monotonic()
-
 
 midi_device = None
 while True:
@@ -202,11 +201,8 @@ while True:
 
         if in_session:
             if event_time - last_event_time > SESSION_TIMEOUT:
-                # print("\nTIMEOUT!")
+                # print("\nSESSION_TIMEOUT!")
                 in_session = False
-                # total_seconds += time.monotonic() - session_start_time
-                # print(f"  Total session time now {as_hms(total_seconds)}")
-                # show_total_time(disp, total_seconds)
                 disp.set_text_3(" ")
 
                 total_seconds += session_length
@@ -233,10 +229,17 @@ while True:
                 # update current session info
                 session_length = time.monotonic() - session_start_time
                 # print(f"  Session now {as_hms(session_length)}")
-                # show_session_time(disp, session_length)
 
-                # UPDATE ALWAYS?
+                # UPDATE ALWAYS? 
+                # TODO: OR JUST ONCE PER SECOND?
+
                 show_total_time(disp, total_seconds + session_length)
+
+                # new_total = total_seconds + session_length
+                # if last_displayed_time != new_total:
+                #     last_displayed_time = new_total
+                #     show_total_time(disp, new_total)
+                #     print("bink!")
 
         else:
             # print("  not in session...")
