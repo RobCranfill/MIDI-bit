@@ -163,7 +163,7 @@ in_session = False
 session_start_time = 0
 
 show_total_time(disp, total_seconds)
-last_displayed_time = total_seconds
+last_displayed_time = int(total_seconds)
 
 idle_start_time = time.monotonic()
 
@@ -235,11 +235,11 @@ while True:
 
                 show_total_time(disp, total_seconds + session_length)
 
-                # new_total = total_seconds + session_length
-                # if last_displayed_time != new_total:
-                #     last_displayed_time = new_total
-                #     show_total_time(disp, new_total)
-                #     print("bink!")
+                new_total = total_seconds + session_length
+                if last_displayed_time != int(new_total):
+                    last_displayed_time = int(new_total)
+                    # print(f" updating at {last_displayed_time}")
+                    show_total_time(disp, new_total)
 
         else:
             # print("  not in session...")
