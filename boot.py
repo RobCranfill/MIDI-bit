@@ -23,8 +23,9 @@ import time
 
 # import midibit_defines
 
-MAGIC_NUMBER_RUN_MODE = 0x12
-MAGIC_NUMBER_DEV_MODE = 0x34
+
+MAGIC_NUMBER_RUN_MODE = 0x12 # 18
+MAGIC_NUMBER_DEV_MODE = 0x34 # 52
 
 RUN_MODE_COLOR = (255, 0, 0)
 DEV_MODE_COLOR = (0, 255, 0)
@@ -52,7 +53,7 @@ button = digitalio.DigitalInOut(BUTTON)
 button.switch_to_input(pull=digitalio.Pull.UP)
 go_dev_mode = not button.value
 print(f"Setting {go_dev_mode=}")
-# print(f"CIRCUITPY {'Unlocked: Dev Mode' if go_dev_mode is True else 'Locked: Run Mode'}")
+# print(f"CIRCUITPY {'Unlocked: Dev Mode' if go_dev_mode is True else 'Locke`d: Run Mode'}")
 
 try:
 
@@ -63,10 +64,10 @@ try:
     storage.remount("/", go_dev_mode)
 
     # Save state to NVM, to pass to main code. (thanks, danhalbert!)
-    mode = microcontroller.nvm[0] == MAGIC_NUMBER_DEV_MODE
-    if mode != go_dev_mode:
+    old_mode = microcontroller.nvm[0] == MAGIC_NUMBER_DEV_MODE
+    if old_mode != go_dev_mode:
+        print(f"Changing NVM to {MAGIC_NUMBER_DEV_MODE if go_dev_mode else MAGIC_NUMBER_RUN_MODE}")
         microcontroller.nvm[0] = MAGIC_NUMBER_DEV_MODE if go_dev_mode else MAGIC_NUMBER_RUN_MODE
-        print(f"Changed NVM to {MAGIC_NUMBER_DEV_MODE if go_dev_mode else MAGIC_NUMBER_RUN_MODE:02x}")
 
 
     # Blink & hold: green if dev mode, red if run mode, yellow if problem.
@@ -79,6 +80,6 @@ try:
         pixel.fill(RUN_MODE_COLOR)
 
 except Exception as e:
-    print(f"Failed! Can't change mode while developing. ({e})")
+    print(f"Failed! Can't change mode while developing? ({e})")
     blink(3, (255, 255, 0))
     pixel.fill((255, 255, 0))

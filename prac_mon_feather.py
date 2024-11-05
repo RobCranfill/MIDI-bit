@@ -24,9 +24,8 @@ import adafruit_usb_host_midi
 # Our libs
 import one_line_oled
 
-MAGIC_NUMBER_RUN_MODE = 0x12
-MAGIC_NUMBER_DEV_MODE = 0x34
-
+MAGIC_NUMBER_RUN_MODE = 0x12 # 18
+MAGIC_NUMBER_DEV_MODE = 0x34 # 52
 
 IDLE_TIMEOUT = 60 # for display blanking
 
@@ -38,9 +37,9 @@ SETTINGS_NAME = "pm_settings.text"
 # Read the non-volitile memory for the dev mode set by boot.py.
 import microcontroller
 _dev_mode = False
-if microcontroller.nvm[0:1] == MAGIC_NUMBER_DEV_MODE:
+if microcontroller.nvm[0] == MAGIC_NUMBER_DEV_MODE:
     _dev_mode = True
-print(f"{_dev_mode=}")
+print(f"{microcontroller.nvm[0]=} -> {_dev_mode=} ({MAGIC_NUMBER_DEV_MODE=})")
 
 _led = digitalio.DigitalInOut(board.LED)
 _led.direction = digitalio.Direction.OUTPUT
