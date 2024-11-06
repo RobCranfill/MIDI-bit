@@ -1,6 +1,21 @@
-# Practice Monitor for Feather RP2040 Feather with USB Host
+"""MIDI Practice Monitor
+
+a.k.a. MIDI-bit - A fitbit for your MIDI keyboard
+
+(c)2024 Rob Cranfill
+
+See https://github.com/RobCranfill/MIDI-bit
+
+Version 1 - Minimum Viable Product - Just keeps track of elapsed time spent practicing.
+
+For CircuitPython, on the device known as 
+"Adafruit Feather RP2040 with USB Type A Host" (whew!)
+(Adafruit Product ID: 5723)
+
+"""
 
 # stdlibs
+import adafruit_midi.note_on
 import board
 import digitalio
 import neopixel
@@ -23,9 +38,9 @@ import adafruit_usb_host_midi
 
 # Our libs
 import one_line_oled
+import midi_state_machine
+import midibit_defines
 
-MAGIC_NUMBER_RUN_MODE = 0x12 # 18
-MAGIC_NUMBER_DEV_MODE = 0x34 # 52
 
 # TODO: how does this affect responsiveness? buffering? what-all??
 MIDI_TIMEOUT = .1
@@ -36,13 +51,16 @@ DISPLAY_IDLE_TIMEOUT = 60 # for display blanking
 
 SETTINGS_NAME = "pm_settings.text"
 
+# Force writing of status? G G G Eb F F F D
+MIDI_TRIGGER_SEQ_1 = (67, 67, 67, 63, 65, 65, 65, 62)
+
 
 # Read the non-volitile memory for the dev mode set by boot.py.
 import microcontroller
 _dev_mode = False
-if microcontroller.nvm[0] == MAGIC_NUMBER_DEV_MODE:
+if microcontroller.nvm[0] == midibit_defines.MAGIC_NUMBER_DEV_MODE:
     _dev_mode = True
-# print(f"{microcontroller.nvm[0]=} -> {_dev_mode=} ({MAGIC_NUMBER_DEV_MODE=})")
+# print(f"{microcontroller.nvm[0]=} -> {_dev_mode=} ({midibit_defines.MAGIC_NUMBER_DEV_MODE=})")
 
 _led = digitalio.DigitalInOut(board.LED)
 _led.direction = digitalio.Direction.OUTPUT
@@ -142,12 +160,34 @@ def find_midi_device(display):
     return midi_device
 
 
+def try_write_session_data(disp, seconds):
+
+    global _dev_mode
+    try:
+        write_session_data(seconds)
+        disp.set_text_3("!") # happy write
+    except Exception as e:
+
+        # we expect write errors in dev mode.
+        if _dev_mode:
+            print("Can't write, as expected")
+        else:
+            print(f"Can't write! {e}")
+
+            # Show an "X" to indicate failed write. FIXME.
+            disp.set_text_3("X")
+            time.sleep(2)
+            disp.set_text_3("")
+
+
 # ------------------------------------------------------------------------------
 # ------------------------------------------------------------------------------
 
 # turn off auto-reload, cuz it's a pain
 supervisor.runtime.autoreload = False
 print(f"{supervisor.runtime.autoreload=}")
+
+msm1 = midi_state_machine.midi_state_machine(MIDI_TRIGGER_SEQ_1)
 
 set_run_or_dev()
 
@@ -197,32 +237,46 @@ while True:
                 print("\nStarting session")
                 session_start_time = time.monotonic()
                 in_session = True
+
+            # Also look for command sequences
+            if isinstance(msg, NoteOn):
+                if msm1.note(msg.note):
+                    print(f"*** Got {MIDI_TRIGGER_SEQ_1=}")
+
+                    # Hmm, we don't know the session length yet. :-/
+                    # try_write_session_data(disp, total_seconds)
+
         else:
             # print("  empty message")
             pass
 
         if in_session:
             if event_time - last_event_time > SESSION_TIMEOUT:
+
                 # print("\nSESSION_TIMEOUT!")
                 in_session = False
                 disp.set_text_3(" ")
 
                 total_seconds += session_length
-                try:
-                    write_session_data(total_seconds)
-                    disp.set_text_3("!") # happy write
-                except Exception as e:
 
-                    # we expect write errors in dev mode.
-                    if _dev_mode:
-                        print("Can't write, as expected")
-                    else:
-                        print(f"Can't write! {e}")
+                try_write_session_data(disp, total_seconds)
 
-                        # Show an "X" to indicate failed write. FIXME.
-                        disp.set_text_3("X")
-                        time.sleep(2)
-                        disp.set_text_3("")
+                # try:
+                #     write_session_data(total_seconds)
+                #     disp.set_text_3("!") # happy write
+                # except Exception as e:
+
+                #     # we expect write errors in dev mode.
+                #     if _dev_mode:
+                #         print("Can't write, as expected")
+                #     else:
+                #         print(f"Can't write! {e}")
+
+                #         # Show an "X" to indicate failed write. FIXME.
+                #         disp.set_text_3("X")
+                #         time.sleep(2)
+                #         disp.set_text_3("")
+
 
                 # deal with screen timeout
                 idle_start_time = time.monotonic()
