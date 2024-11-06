@@ -8,15 +8,14 @@ Elevator Pitch: A Fitbit for MIDI keyboards. Tells you how much you have practic
 # Design Goals
 Something that plugs into the USB port of a MIDI keyboard, with auto start/stop, so you can forget about it.
 
-Minimum Viable Product: Accumulate total practice time for a given interval.
+Minimum Viable Product: Accumulate total practice time until reset.
 
-Stretch goals: Internet connectivity, with an app to slice and dice the data.
+Stretch goals: Internet connectivity, with an app to slice and dice the data all pretty-like.
 
 # Operation
-* Plug it in to MIDI & USB power (or LiPo for Feather)
-* NeoPixel will blink blue 5 times; you have 2 seconds to press the BOOT button to put it into "DEV MODE" (see below).
+* Plug it in to MIDI & USB power (Feather can run on battery but is that practical?)
 * Play the keyboard and watch your time accumulate!
-* If no MIDI is connected, or no MIDI events are detected in the timeout period (60 seconds in RUN mode, 10 seconds in DEV mode) the screen will be blanked and the red LED will blink once per second (3 times if no MIDI, just for now).
+* If no MIDI is connected, or no MIDI events are detected in the timeout period (60 seconds in RUN mode, 10 seconds in DEV mode (see below)) the screen will be blanked and the red LED will blink once per second (3 blinks per second if no MIDI, just for now).
 
 * RUN/DEV MODE
   * For now, there are these two modes. Useful for development, but ultimately not needed?
@@ -25,23 +24,25 @@ Stretch goals: Internet connectivity, with an app to slice and dice the data.
   otherwise it's RUN MODE.
   * boot.py will set the Feather's flash memory to "READ ONLY" if in DEV MODE.
   See [adafruit.com](https://learn.adafruit.com/circuitpython-essentials/circuitpython-storage) for more info.
-    * This means in RUN MODE, the default, the CircuitPython code can write to the flash, and can update the accumulated practice time.
-    In DEV MODE, we can edit the files on the flash drive, and update the code - but the running code cannot update the stored practice time.
+  * This means in RUN MODE, the default, the CircuitPython code can write to the flash, and can update the accumulated practice time.
+    In DEV MODE, we can edit the files on the flash drive via the USB C connector, and update the code - but the running code cannot update the stored practice time.
     This is OK since that would be just garbage, 'testing' numbers anyway.
   * Once we start running 'code'.py', if RUN MODE we set the NeoPixel to red (Red == Run), 
   otherwise set it to green.
 
+* Keyboard control sequences!
+  * If you play the intro to Beethoven's 5th, it will force an immediate write of the session data!
+    * That's fourth octave (just above middle C) G G G Eb F F F D; the tempo doesn't matter.
 
 # Hardware Requirements for this project
 * Adafruit "RP2040 with USB A Host" (Adafruit part number 5723)
 * Adafruit 0.91" OLED Display (P/N 4440)
   * TODO: Replace with something bigger, color?
-* Power supply - wall wart or lithium battery?
+* Power supply - wall wart or lipo battery?
   * Going to need to be plugged in, either to wall or USB power from keyboard.
-  *  TODO: Power from Roland USB A port seems problematic.
-* Use the BOOT button for user input.
+  *  TODO: Power from Roland USB A port seems problematic. Why?
+* Use the BOOT button for user input?
   * Is just one button enough?
-* <b>or...</b> Use keyboard key sequences for control? COOL! :-)
 
 
 # Software Requirements

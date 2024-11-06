@@ -52,7 +52,11 @@ DISPLAY_IDLE_TIMEOUT = 60 # for display blanking
 SETTINGS_NAME = "pm_settings.text"
 
 # Force writing of session data? G G G Eb F F F D
-MIDI_TRIGGER_SEQ_WRITE = (67, 67, 67, 63, 65, 65, 65, 62)
+MIDI_TRIGGER_SEQ_PREFIX = (67, 67, 67, 63, 65, 65, 65, 62)
+MIDI_TRIGGER_SEQ_RESET  = MIDI_TRIGGER_SEQ_PREFIX + (60,) # middle C
+
+# A state machine to watch for the "force write" sequence.
+msm_reset = midi_state_machine.midi_state_machine(MIDI_TRIGGER_SEQ_RESET)
 
 
 # Read the non-volitile memory for the dev mode set by boot.py.
@@ -188,8 +192,6 @@ def try_write_session_data(disp, seconds):
 supervisor.runtime.autoreload = False
 print(f"{supervisor.runtime.autoreload=}")
 
-# A state machine to watch for the "force write" sequence.
-msm_write = midi_state_machine.midi_state_machine(MIDI_TRIGGER_SEQ_WRITE)
 
 set_run_or_dev()
 
@@ -238,13 +240,24 @@ while True:
 
                 # Also look for command sequences - FIXME: only if in session?
                 if isinstance(msg, NoteOn):
-                    if msm_write.note(msg.note):
-                        print(f"* Got {MIDI_TRIGGER_SEQ_WRITE=}")
+                    if msm_reset.note(msg.note):
+                        print(f"* Got {MIDI_TRIGGER_SEQ_RESET=}")
 
-                        # don't update total_seconds yet, but write the new value
-                        total_seconds_temp = total_seconds + session_length
-                        print(f"* Force write: {total_seconds=}, {total_seconds_temp=}")
-                        try_write_session_data(disp, total_seconds_temp)
+                        print("ZERO OUT SESSION TIME?")
+
+                        total_seconds = 0
+                        last_displayed_time = 0
+                        session_length = 0
+                        session_start_time = time.monotonic()
+                        show_total_time(disp, total_seconds)
+
+                        try_write_session_data(disp, total_seconds)
+
+                    # if msm_force_write.note(msg.note):
+                    #     # don't update total_seconds yet, but write the new value
+                    #     total_seconds_temp = total_seconds + session_length
+                    #     print(f"* Force write: {total_seconds=}, {total_seconds_temp=}")
+                    #     try_write_session_data(disp, total_seconds_temp)
 
             else:
                 print("\nStarting session")
@@ -265,23 +278,6 @@ while True:
                 total_seconds += session_length
 
                 try_write_session_data(disp, total_seconds)
-
-                # try:
-                #     write_session_data(total_seconds)
-                #     disp.set_text_3("!") # happy write
-                # except Exception as e:
-
-                #     # we expect write errors in dev mode.
-                #     if _dev_mode:
-                #         print("Can't write, as expected")
-                #     else:
-                #         print(f"Can't write! {e}")
-
-                #         # Show an "X" to indicate failed write. FIXME.
-                #         disp.set_text_3("X")
-                #         time.sleep(2)
-                #         disp.set_text_3("")
-
 
                 # deal with screen timeout
                 idle_start_time = time.monotonic()
