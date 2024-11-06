@@ -39,7 +39,7 @@ import adafruit_usb_host_midi
 # Our libs
 import one_line_oled
 import midi_state_machine
-import midibit_defines
+import midibit_defines as DEF
 
 
 # TODO: how does this affect responsiveness? buffering? what-all??
@@ -51,16 +51,16 @@ DISPLAY_IDLE_TIMEOUT = 60 # for display blanking
 
 SETTINGS_NAME = "pm_settings.text"
 
-# Force writing of status? G G G Eb F F F D
-MIDI_TRIGGER_SEQ_1 = (67, 67, 67, 63, 65, 65, 65, 62)
+# Force writing of session data? G G G Eb F F F D
+MIDI_TRIGGER_SEQ_WRITE = (67, 67, 67, 63, 65, 65, 65, 62)
 
 
 # Read the non-volitile memory for the dev mode set by boot.py.
 import microcontroller
 _dev_mode = False
-if microcontroller.nvm[0] == midibit_defines.MAGIC_NUMBER_DEV_MODE:
+if microcontroller.nvm[0] == DEF.MAGIC_NUMBER_DEV_MODE:
     _dev_mode = True
-# print(f"{microcontroller.nvm[0]=} -> {_dev_mode=} ({midibit_defines.MAGIC_NUMBER_DEV_MODE=})")
+# print(f"{microcontroller.nvm[0]=} -> {_dev_mode=} ({DEF.MAGIC_NUMBER_DEV_MODE=})")
 
 _led = digitalio.DigitalInOut(board.LED)
 _led.direction = digitalio.Direction.OUTPUT
@@ -104,7 +104,8 @@ def show_total_time(display, seconds):
     display.set_text_1(as_hms(seconds))
 
 def write_session_data(session_seconds):
-    '''This will throw an exception if the filesystem isn't writable. Catch it higher up.'''
+    '''Writes a string-ified version of the integer value.
+    This will throw an exception if the filesystem isn't writable. Catch it higher up.'''
     print(f"write_session_data: {int(session_seconds)}")
     with open(SETTINGS_NAME, "w") as f:
         f.write(str(int(session_seconds)))
@@ -161,7 +162,7 @@ def find_midi_device(display):
 
 
 def try_write_session_data(disp, seconds):
-
+    '''Write the given elapsed time to the data file.'''
     global _dev_mode
     try:
         write_session_data(seconds)
@@ -187,7 +188,8 @@ def try_write_session_data(disp, seconds):
 supervisor.runtime.autoreload = False
 print(f"{supervisor.runtime.autoreload=}")
 
-msm1 = midi_state_machine.midi_state_machine(MIDI_TRIGGER_SEQ_1)
+# A state machine to watch for the "force write" sequence.
+msm_write = midi_state_machine.midi_state_machine(MIDI_TRIGGER_SEQ_WRITE)
 
 set_run_or_dev()
 
@@ -232,19 +234,22 @@ while True:
 
             last_event_time = time.monotonic()
             if in_session:
-                pass
+                # pass
+
+                # Also look for command sequences - FIXME: only if in session?
+                if isinstance(msg, NoteOn):
+                    if msm_write.note(msg.note):
+                        print(f"* Got {MIDI_TRIGGER_SEQ_WRITE=}")
+
+                        # don't update total_seconds yet, but write the new value
+                        total_seconds_temp = total_seconds + session_length
+                        print(f"* Force write: {total_seconds=}, {total_seconds_temp=}")
+                        try_write_session_data(disp, total_seconds_temp)
+
             else:
                 print("\nStarting session")
                 session_start_time = time.monotonic()
                 in_session = True
-
-            # Also look for command sequences
-            if isinstance(msg, NoteOn):
-                if msm1.note(msg.note):
-                    print(f"*** Got {MIDI_TRIGGER_SEQ_1=}")
-
-                    # Hmm, we don't know the session length yet. :-/
-                    # try_write_session_data(disp, total_seconds)
 
         else:
             # print("  empty message")

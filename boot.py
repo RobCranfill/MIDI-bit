@@ -21,10 +21,8 @@ import neopixel
 import storage
 import time
 
-import midibit_defines
+import midibit_defines as DEF
 
-# MAGIC_NUMBER_RUN_MODE = 0x12 # 18
-# MAGIC_NUMBER_DEV_MODE = 0x34 # 52
 
 RUN_MODE_COLOR = (255, 0, 0)
 DEV_MODE_COLOR = (0, 255, 0)
@@ -63,10 +61,10 @@ try:
     storage.remount("/", go_dev_mode)
 
     # Save state to NVM, to pass to main code. (thanks, danhalbert!)
-    old_mode = microcontroller.nvm[0] == midibit_defines.MAGIC_NUMBER_DEV_MODE
+    old_mode = microcontroller.nvm[0] == DEF.MAGIC_NUMBER_DEV_MODE
     if old_mode != go_dev_mode:
-        print(f"Changing NVM to {midibit_defines.MAGIC_NUMBER_DEV_MODE if go_dev_mode else midibit_defines.MAGIC_NUMBER_RUN_MODE}")
-        microcontroller.nvm[0] = midibit_defines.MAGIC_NUMBER_DEV_MODE if go_dev_mode else midibit_defines.MAGIC_NUMBER_RUN_MODE
+        print(f"Changing NVM to {DEF.MAGIC_NUMBER_DEV_MODE if go_dev_mode else DEF.MAGIC_NUMBER_RUN_MODE}")
+        microcontroller.nvm[0] = DEF.MAGIC_NUMBER_DEV_MODE if go_dev_mode else DEF.MAGIC_NUMBER_RUN_MODE
 
 
     # Blink & hold: green if dev mode, red if run mode, yellow if problem.

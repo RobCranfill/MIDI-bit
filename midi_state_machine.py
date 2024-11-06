@@ -23,16 +23,14 @@ class midi_state_machine:
     def note(self, new_note):
         """Return true iff this new note completes the sequence."""
 
-        # print(f"Testing {new_note=}")
-        # print(f"  checking {self.last_hit_=}")
+        # print(f"Testing {new_note=}; {self.last_hit_=}")
 
         if new_note != self.note_list_[self.last_hit_ + 1]:
-            # print("  Next is NOT in sequence!")
+            # print("  Next is NOT in sequence")
 
             # But what if it's FIRST in the sequence?
-            # is this kudgy? it works.
             if new_note == self.note_list_[0]:
-                # print("  But it IS first in sequence!")
+                # print("  But it IS first in sequence")
                 self.last_hit_ = 0
                 return False
 
@@ -62,6 +60,7 @@ def test():
     test = msm.note(4)
     test = msm.note(5)
 
+    test = msm.note(6)
     test = msm.note(4)
     test = msm.note(3)
 
