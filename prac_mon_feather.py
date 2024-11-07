@@ -225,9 +225,8 @@ while True:
         except usb.core.USBError:
             print("usb.core.USBError!")
 
+            # Assume this is a MIDI disconnect?
             if in_session:
-                print(f"Force save! {total_seconds=}")
-
                 total_seconds_temp= total_seconds + session_length
                 print(f"* Force write: {total_seconds=}, {session_length=}")
                 try_write_session_data(disp, total_seconds+session_length)

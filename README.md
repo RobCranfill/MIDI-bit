@@ -30,9 +30,12 @@ Stretch goals: Internet connectivity, with an app to slice and dice the data all
   * Once we start running 'code'.py', if RUN MODE we set the NeoPixel to red (Red == Run), 
   otherwise set it to green.
 
-* Keyboard control sequences!
-  * If you play the intro to Beethoven's 5th, it will force an immediate write of the session data!
-    * That's fourth octave (just above middle C) G G G Eb F F F D; the tempo doesn't matter.
+* Keyboard control sequences
+  * In order to send commands to the unit from the MIDI keyboard, instead of using MIDI CC or PC commands, which some keyboards may not accomodate, you can play the first eight notes of Beethoven's 5th, starting on G above middle C, to get the unit's attentions.
+    * That's G G G Eb F F F D; the tempo doesn't matter.
+    * After the attention sequence, 
+      * Middle C: Zero out session data (and write it to storage).
+      * Unimplemented? <strike>D above middle C: Write session data immediately.</strike>
 
 # Hardware Requirements for this project
 * Adafruit "RP2040 with USB A Host" (Adafruit part number 5723)
@@ -42,7 +45,7 @@ Stretch goals: Internet connectivity, with an app to slice and dice the data all
   * Going to need to be plugged in, either to wall or USB power from keyboard.
   *  TODO: Power from Roland USB A port seems problematic. Why?
 * Use the BOOT button for user input?
-  * Is just one button enough?
+  * Is just one button enough? No; used keyboard sequences.
 
 
 # Software Requirements
@@ -53,16 +56,16 @@ Stretch goals: Internet connectivity, with an app to slice and dice the data all
 * Font: 22-point bitmap of FreeType-CMU Typewriter Text-Bold-R-Normal, rendered from OpenType font "cmuntb.ttf", converted by Andrey V. Panov from TeX fonts.
 
 
-# Open Issues
-* How to reset/restart data?
+# Open Issues (also see GitHub)
 * What data to preserve?
   * Just total practice time? Is "session" time useful? Keypresses??
 * Without some kind of networking, how can we ever export data?
 
 # Closed Issues
-   * <strike>How to preserve data across restarts?
+* How to reset/restart data?
+* How to preserve data across restarts?
    * Write to a file, I assume. When? How often?
-      * Write to a file when session ends.      
-* Show Run/Dev mode via NeoPixel, all the time
-  * If set in boot.py, state doesn't survive into code.py !?
-</strike>
+      * Write to a file when session ends.
+* Show Run/Dev mode via NeoPixel, all the time.
+  * If set in boot.py, state doesn't survive into code.py
+
