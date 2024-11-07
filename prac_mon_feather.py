@@ -15,7 +15,6 @@ For CircuitPython, on the device known as
 """
 
 # stdlibs
-import adafruit_midi.note_on
 import board
 import digitalio
 import neopixel
@@ -28,7 +27,7 @@ import adafruit_datetime as datetime
 import adafruit_midi
 import adafruit_midi.midi_message
 
-# FIXME: this seems clunky. can't I do this more succinctly?
+# FIXME: this seems clunky. can't we do this more succinctly?
 from adafruit_midi.control_change import ControlChange
 from adafruit_midi.note_off import NoteOff
 from adafruit_midi.note_on import NoteOn
@@ -45,17 +44,18 @@ import midibit_defines as DEF
 # TODO: how does this affect responsiveness? buffering? what-all??
 MIDI_TIMEOUT = .1
 
+# Timeouts, in seconds.
 # Defaults will be changed if dev mode
 SESSION_TIMEOUT = 15
 DISPLAY_IDLE_TIMEOUT = 60 # for display blanking
 
 SETTINGS_NAME = "pm_settings.text"
 
-# Force writing of session data? G G G Eb F F F D
+# Keyboard "attention" sequence MIDI notes: G G G Eb F F F D
 MIDI_TRIGGER_SEQ_PREFIX = (67, 67, 67, 63, 65, 65, 65, 62)
 MIDI_TRIGGER_SEQ_RESET  = MIDI_TRIGGER_SEQ_PREFIX + (60,) # middle C
 
-# A state machine to watch for the "force write" sequence.
+# A state machine to watch for the "reset" sequence.
 msm_reset = midi_state_machine.midi_state_machine(MIDI_TRIGGER_SEQ_RESET)
 
 
@@ -74,7 +74,6 @@ def flash_led(seconds):
     time.sleep(seconds)
     _led.value = False
 
-
 RUN_MODE_COLOR = (128, 0, 0)
 DEV_MODE_COLOR = (0, 128, 0)
 def set_run_or_dev():
@@ -88,7 +87,6 @@ def set_run_or_dev():
         print(f"DEV MODE: Setting timeouts to {SESSION_TIMEOUT=}, {DISPLAY_IDLE_TIMEOUT=}\n")
     else:
         pixel.fill(RUN_MODE_COLOR)
-
 
 SPINNER = "|/-\\"
 spinner_index_ = 0
@@ -127,6 +125,8 @@ def read_session_data():
     return result
 
 def find_midi_device(display):
+    """Does not return until it sees a MIDI device"""
+
     print("Looking for midi devices...")
     display.set_text_2("Looking for MIDI...")
     raw_midi = None
@@ -137,18 +137,23 @@ def find_midi_device(display):
     while raw_midi is None:
         all_devices = usb.core.find(find_all=True)
         for device in all_devices:
+            # I guess this is how we find a MIDI device: try it; if not MIDI, will throw exception.
+            print(f" looking at device {device=}")
             try:
                 raw_midi = adafruit_usb_host_midi.MIDI(device, timeout=MIDI_TIMEOUT)
                 print(f"Found vendor 0x{device.idVendor:04x}, device 0x{device.idProduct:04x}")
                 print(f"{device.product=}")
+                break
             except ValueError:
                 continue
 
-        # FIXME: we always get one extraneous error message
+        if raw_midi is not None:
+            continue
+
         print(f"No MIDI device found on try #{attempt}. Sleeping....")
         time.sleep(1)
 
-        # No-MIDI timeout; flass LED twice?
+        # No-MIDI timeout; flash LED twice
         if time.monotonic() - no_midi_idle_start_time > DISPLAY_IDLE_TIMEOUT:
             # print("no-MIDI idle timeout!")
             display.blank_screen()
@@ -159,7 +164,6 @@ def find_midi_device(display):
         attempt += 1
 
     midi_device = adafruit_midi.MIDI(midi_in=raw_midi)
-    print(f"Found {device.product}")
     display.set_text_2(f"Found {device.product}")
     time.sleep(2) # FIXME ? arbitrary
     return midi_device
