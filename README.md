@@ -16,6 +16,12 @@ Stretch goals: Internet connectivity, with an app to slice and dice the data all
 * Plug it in to MIDI & USB power (Feather can run on battery but is that practical?)
 * Play the keyboard and watch your time accumulate!
 * If no MIDI is connected, or no MIDI events are detected in the timeout period (60 seconds in RUN mode, 10 seconds in DEV mode (see below)) the screen will be blanked and the red LED will blink once per second (3 blinks per second if no MIDI, just for now).
+* Keyboard control sequences
+  * In order to send commands to the unit from the MIDI keyboard, instead of using MIDI CC or PC commands, which some keyboards may not accomodate, you can play the first eight notes of Beethoven's 5th, starting on G above middle C, to get the unit's attentions.
+    * That's G G G Eb F F F D; the tempo doesn't matter.
+    * After the attention sequence, 
+      * Middle C: Zero out session data (and write it to storage).
+      * Unimplemented/not useful? <strike>D above middle C: Write session data immediately.</strike>
 
 * RUN/DEV MODE
   * For now, there are these two modes. Useful for development, but ultimately not needed?
@@ -29,13 +35,6 @@ Stretch goals: Internet connectivity, with an app to slice and dice the data all
     This is OK since that would be just garbage, 'testing' numbers anyway.
   * Once we start running 'code'.py', if RUN MODE we set the NeoPixel to red (Red == Run), 
   otherwise set it to green.
-
-* Keyboard control sequences
-  * In order to send commands to the unit from the MIDI keyboard, instead of using MIDI CC or PC commands, which some keyboards may not accomodate, you can play the first eight notes of Beethoven's 5th, starting on G above middle C, to get the unit's attentions.
-    * That's G G G Eb F F F D; the tempo doesn't matter.
-    * After the attention sequence, 
-      * Middle C: Zero out session data (and write it to storage).
-      * Unimplemented? <strike>D above middle C: Write session data immediately.</strike>
 
 # Hardware Requirements for this project
 * Adafruit "RP2040 with USB A Host" (Adafruit part number 5723)
