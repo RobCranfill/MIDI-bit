@@ -224,8 +224,16 @@ while True:
             msg = midi_device.receive()
         except usb.core.USBError:
             print("usb.core.USBError!")
+
+            if in_session:
+                print(f"Force save! {total_seconds=}")
+
+                total_seconds_temp= total_seconds + session_length
+                print(f"* Force write: {total_seconds=}, {session_length=}")
+                try_write_session_data(disp, total_seconds+session_length)
+
             midi_device = None
-            continue # break?
+            continue
 
         event_time = time.monotonic()
         if msg:
@@ -242,9 +250,6 @@ while True:
                 if isinstance(msg, NoteOn):
                     if msm_reset.note(msg.note):
                         print(f"* Got {MIDI_TRIGGER_SEQ_RESET=}")
-
-                        print("ZERO OUT SESSION TIME?")
-
                         total_seconds = 0
                         last_displayed_time = 0
                         session_length = 0
