@@ -170,21 +170,26 @@ def find_midi_device(display):
 
 
 def try_write_session_data(disp, seconds):
-    '''Write the given elapsed time to the data file.'''
+    '''Write the given elapsed time to the data file. Display errors as needed.'''
     global _dev_mode
     try:
         write_session_data(seconds)
-        disp.set_text_3("!") # happy write
+        disp.set_text_3("DATA SAVED") # happy write
+        time.sleep(2)
+
     except Exception as e:
 
         # we expect write errors in dev mode.
         if _dev_mode:
             print("Can't write, as expected")
+            disp.set_text_3("FAILED TO SAVE - OK")
+            time.sleep(2)
+            disp.set_text_3("")
+
         else:
             print(f"Can't write! {e}")
 
-            # Show an "X" to indicate failed write. FIXME.
-            disp.set_text_3("X")
+            disp.set_text_3("FAILED TO SAVE!")
             time.sleep(2)
             disp.set_text_3("")
 
