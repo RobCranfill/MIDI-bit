@@ -36,7 +36,7 @@ from adafruit_midi.pitch_bend import PitchBend
 import adafruit_usb_host_midi
 
 # Our libs
-import one_line_oled
+import two_line_oled
 import midi_state_machine
 import midibit_defines as DEF
 
@@ -98,9 +98,6 @@ def spin():
 
 def as_hms(seconds):
     return str(datetime.timedelta(0, int(seconds)))
-
-def show_session_time(display, seconds):
-    display.set_text_2(f"Session: {as_hms(seconds)}")
 
 def show_total_time(display, seconds):
     display.set_text_1(as_hms(seconds))
@@ -174,7 +171,7 @@ def try_write_session_data(disp, seconds):
     global _dev_mode
     try:
         write_session_data(seconds)
-        disp.set_text_3("DATA SAVED") # happy write
+        disp.set_text_2("DATA SAVED")
         time.sleep(2)
 
     except Exception as e:
@@ -182,16 +179,16 @@ def try_write_session_data(disp, seconds):
         # we expect write errors in dev mode.
         if _dev_mode:
             print("Can't write, as expected")
-            disp.set_text_3("FAILED TO SAVE - OK")
+            disp.set_text_2("FAILED TO SAVE - OK")
             time.sleep(2)
-            disp.set_text_3("")
+            disp.set_text_2("")
 
         else:
             print(f"Can't write! {e}")
 
-            disp.set_text_3("FAILED TO SAVE!")
+            disp.set_text_2("FAILED TO SAVE!")
             time.sleep(2)
-            disp.set_text_3("")
+            disp.set_text_2("")
 
 
 # ------------------------------------------------------------------------------
@@ -209,7 +206,7 @@ total_seconds = int(read_session_data())
 print(f"read_session_data: {total_seconds=}")
 
 # Update the display
-disp = one_line_oled.one_line_oled()
+disp = two_line_oled.two_line_oled()
 
 last_event_time = time.monotonic()
 
@@ -247,8 +244,7 @@ while True:
         if msg:
 
             # print(f"midi msg: {msg} @ {event_time:.1f}")
-            disp.set_text_2("")
-            disp.set_text_3(spin())
+            disp.set_text_2(spin())
 
             last_event_time = time.monotonic()
             if in_session:
@@ -286,7 +282,7 @@ while True:
 
                 # print("\nSESSION_TIMEOUT!")
                 in_session = False
-                disp.set_text_3(" ")
+                disp.set_text_2("")
 
                 total_seconds += session_length
 
