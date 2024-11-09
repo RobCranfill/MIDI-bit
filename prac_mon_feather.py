@@ -70,14 +70,15 @@ def flash_led(seconds):
 def set_run_or_dev():
     '''Depending on global _dev_mode, set the NeoPixel state and some other globals; return dev mode flag'''
 
+    global SESSION_TIMEOUT
+    global DISPLAY_IDLE_TIMEOUT
+    global flash_color_
+
     # Read the non-volatile memory for the dev mode set by boot.py.
     is_dev_mode = False
     if microcontroller.nvm[0] == DEF.MAGIC_NUMBER_DEV_MODE:
         is_dev_mode = True
     # print(f"{microcontroller.nvm[0]=} -> {is_dev_mode=} ({DEF.MAGIC_NUMBER_DEV_MODE=})")
-
-    global SESSION_TIMEOUT
-    global DISPLAY_IDLE_TIMEOUT
 
     if is_dev_mode:
         neopixel_.fill(DEV_MODE_COLOR)
