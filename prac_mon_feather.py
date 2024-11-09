@@ -57,22 +57,23 @@ MIDI_TRIGGER_SEQ_PREFIX = (67, 67, 67, 63, 65, 65, 65, 62)
 MIDI_TRIGGER_SEQ_RESET  = MIDI_TRIGGER_SEQ_PREFIX + (60,) # middle C
 
 
-RUN_MODE_COLOR = (128, 0, 0)
-DEV_MODE_COLOR = (0, 128, 0)
-flash_color_ = RUN_MODE_COLOR
-
 neopixel_ = neopixel.NeoPixel(board.NEOPIXEL, 1)
 def flash_led(seconds):
     neopixel_.fill(flash_color_)
+    print(f"Flashing {flash_color_}")
     time.sleep(seconds)
     neopixel_.fill((0,0,0))
 
 def set_run_or_dev():
-    '''Depending on global _dev_mode, set the NeoPixel state and some other globals; return dev mode flag'''
+    '''Set the NeoPixel state and some other globals; return dev mode flag'''
 
     global SESSION_TIMEOUT
     global DISPLAY_IDLE_TIMEOUT
     global flash_color_
+
+    RUN_MODE_COLOR = (128, 0, 0)
+    DEV_MODE_COLOR = (0, 128, 0)
+    flash_color_ = RUN_MODE_COLOR
 
     # Read the non-volatile memory for the dev mode set by boot.py.
     is_dev_mode = False
@@ -81,13 +82,13 @@ def set_run_or_dev():
     # print(f"{microcontroller.nvm[0]=} -> {is_dev_mode=} ({DEF.MAGIC_NUMBER_DEV_MODE=})")
 
     if is_dev_mode:
-        neopixel_.fill(DEV_MODE_COLOR)
         flash_color_ = DEV_MODE_COLOR
+        neopixel_.fill(flash_color_)
         SESSION_TIMEOUT = 5
         DISPLAY_IDLE_TIMEOUT = 10
         print(f"DEV MODE: Setting timeouts to {SESSION_TIMEOUT=}, {DISPLAY_IDLE_TIMEOUT=}\n")
     else:
-        neopixel_.fill(RUN_MODE_COLOR)
+        neopixel_.fill(flash_color_)
     return is_dev_mode
 
 SPINNER = "|/-\\"
