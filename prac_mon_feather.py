@@ -56,20 +56,17 @@ SETTINGS_NAME = "pm_settings.text"
 MIDI_TRIGGER_SEQ_PREFIX = (67, 67, 67, 63, 65, 65, 65, 62)
 MIDI_TRIGGER_SEQ_RESET  = MIDI_TRIGGER_SEQ_PREFIX + (60,) # middle C
 
-# A state machine to watch for the "reset" sequence.
-msm_reset = midi_state_machine.midi_state_machine(MIDI_TRIGGER_SEQ_RESET)
-
-
-_led = digitalio.DigitalInOut(board.LED)
-_led.direction = digitalio.Direction.OUTPUT
-def flash_led(seconds):
-    # global _led
-    _led.value = True
-    time.sleep(seconds)
-    _led.value = False
 
 RUN_MODE_COLOR = (128, 0, 0)
 DEV_MODE_COLOR = (0, 128, 0)
+flash_color_ = RUN_MODE_COLOR
+
+neopixel_ = neopixel.NeoPixel(board.NEOPIXEL, 1)
+def flash_led(seconds):
+    neopixel_.fill(flash_color_)
+    time.sleep(seconds)
+    neopixel_.fill((0,0,0))
+
 def set_run_or_dev():
     '''Depending on global _dev_mode, set the NeoPixel state and some other globals; return dev mode flag'''
 
@@ -81,14 +78,15 @@ def set_run_or_dev():
 
     global SESSION_TIMEOUT
     global DISPLAY_IDLE_TIMEOUT
-    pixel = neopixel.NeoPixel(board.NEOPIXEL, 1)
+
     if is_dev_mode:
-        pixel.fill(DEV_MODE_COLOR)
+        neopixel_.fill(DEV_MODE_COLOR)
+        flash_color_ = DEV_MODE_COLOR
         SESSION_TIMEOUT = 5
         DISPLAY_IDLE_TIMEOUT = 10
         print(f"DEV MODE: Setting timeouts to {SESSION_TIMEOUT=}, {DISPLAY_IDLE_TIMEOUT=}\n")
     else:
-        pixel.fill(RUN_MODE_COLOR)
+        neopixel_.fill(RUN_MODE_COLOR)
     return is_dev_mode
 
 SPINNER = "|/-\\"
@@ -220,6 +218,9 @@ last_displayed_time = int(total_seconds)
 
 idle_start_time = time.monotonic()
 idle_led_blip_time = idle_start_time
+
+# A state machine to watch for the "reset" sequence.
+msm_reset = midi_state_machine.midi_state_machine(MIDI_TRIGGER_SEQ_RESET)
 
 midi_device = None
 while True:
