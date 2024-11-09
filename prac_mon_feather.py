@@ -17,6 +17,7 @@ For CircuitPython, on the device known as
 # stdlibs
 import board
 import digitalio
+import microcontroller
 import neopixel
 import supervisor
 import time
@@ -59,17 +60,10 @@ MIDI_TRIGGER_SEQ_RESET  = MIDI_TRIGGER_SEQ_PREFIX + (60,) # middle C
 msm_reset = midi_state_machine.midi_state_machine(MIDI_TRIGGER_SEQ_RESET)
 
 
-# Read the non-volitile memory for the dev mode set by boot.py.
-import microcontroller
-_dev_mode = False
-if microcontroller.nvm[0] == DEF.MAGIC_NUMBER_DEV_MODE:
-    _dev_mode = True
-# print(f"{microcontroller.nvm[0]=} -> {_dev_mode=} ({DEF.MAGIC_NUMBER_DEV_MODE=})")
-
 _led = digitalio.DigitalInOut(board.LED)
 _led.direction = digitalio.Direction.OUTPUT
 def flash_led(seconds):
-    global _led
+    # global _led
     _led.value = True
     time.sleep(seconds)
     _led.value = False
@@ -77,16 +71,25 @@ def flash_led(seconds):
 RUN_MODE_COLOR = (128, 0, 0)
 DEV_MODE_COLOR = (0, 128, 0)
 def set_run_or_dev():
+    '''Depending on global _dev_mode, set the NeoPixel state and some other globals; return dev mode flag'''
+
+    # Read the non-volatile memory for the dev mode set by boot.py.
+    is_dev_mode = False
+    if microcontroller.nvm[0] == DEF.MAGIC_NUMBER_DEV_MODE:
+        is_dev_mode = True
+    # print(f"{microcontroller.nvm[0]=} -> {is_dev_mode=} ({DEF.MAGIC_NUMBER_DEV_MODE=})")
+
     global SESSION_TIMEOUT
     global DISPLAY_IDLE_TIMEOUT
     pixel = neopixel.NeoPixel(board.NEOPIXEL, 1)
-    if _dev_mode:
+    if is_dev_mode:
         pixel.fill(DEV_MODE_COLOR)
         SESSION_TIMEOUT = 5
         DISPLAY_IDLE_TIMEOUT = 10
         print(f"DEV MODE: Setting timeouts to {SESSION_TIMEOUT=}, {DISPLAY_IDLE_TIMEOUT=}\n")
     else:
         pixel.fill(RUN_MODE_COLOR)
+    return is_dev_mode
 
 SPINNER = "|/-\\"
 spinner_index_ = 0
@@ -166,9 +169,8 @@ def find_midi_device(display):
     return midi_device
 
 
-def try_write_session_data(disp, seconds):
+def try_write_session_data(dev_mode, disp, seconds):
     '''Write the given elapsed time to the data file. Display errors as needed.'''
-    global _dev_mode
     try:
         write_session_data(seconds)
         disp.set_text_2("DATA SAVED")
@@ -177,7 +179,7 @@ def try_write_session_data(disp, seconds):
     except Exception as e:
 
         # we expect write errors in dev mode.
-        if _dev_mode:
+        if dev_mode:
             print("Can't write, as expected")
             disp.set_text_2("FAILED TO SAVE - OK")
             time.sleep(2)
@@ -198,14 +200,14 @@ def try_write_session_data(disp, seconds):
 supervisor.runtime.autoreload = False
 print(f"{supervisor.runtime.autoreload=}")
 
-
-set_run_or_dev()
+# Are we running in dev mode? Set some stuff.
+in_dev_mode = set_run_or_dev()
 
 # Load previous total time from text file.
 total_seconds = int(read_session_data())
 print(f"read_session_data: {total_seconds=}")
 
-# Update the display
+# The display.
 disp = two_line_oled.two_line_oled()
 
 last_event_time = time.monotonic()
@@ -225,6 +227,8 @@ while True:
 
     if midi_device is None:
         midi_device = find_midi_device(disp)
+
+    # TODO: remove this as 'else' to fix one-off error?
     else:
         try:
             msg = midi_device.receive()
@@ -233,9 +237,9 @@ while True:
 
             # Assume this is a MIDI disconnect?
             if in_session:
-                total_seconds_temp= total_seconds + session_length
+                total_seconds_temp = total_seconds + session_length
                 print(f"* Force write: {total_seconds=}, {session_length=}")
-                try_write_session_data(disp, total_seconds+session_length)
+                try_write_session_data(in_dev_mode, disp, total_seconds+session_length)
 
             midi_device = None
             continue
@@ -260,7 +264,7 @@ while True:
                         session_start_time = time.monotonic()
                         show_total_time(disp, total_seconds)
 
-                        try_write_session_data(disp, total_seconds)
+                        try_write_session_data(in_dev_mode, disp, total_seconds)
 
                     # if msm_force_write.note(msg.note):
                     #     # don't update total_seconds yet, but write the new value
@@ -286,7 +290,7 @@ while True:
 
                 total_seconds += session_length
 
-                try_write_session_data(disp, total_seconds)
+                try_write_session_data(in_dev_mode, disp, total_seconds)
 
                 # deal with screen timeout
                 idle_start_time = time.monotonic()
@@ -312,7 +316,7 @@ while True:
                 # print("idle timeout!")
                 disp.blank_screen()
 
-                # Single flash of LED,only once per second
+                # Single flash of LED, once per second.
                 if time.monotonic() - idle_led_blip_time > 1:
                     flash_led(0.01)
                     idle_led_blip_time = time.monotonic()
