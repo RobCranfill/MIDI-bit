@@ -43,14 +43,19 @@ def blink(times, color_triple):
 blink(5, (0, 0, 255))
 time.sleep(1)
 
+go_dev_mode = False
 
 # We will go to "read/write" mode unless the BOOT button is pressed.
 #
 button = digitalio.DigitalInOut(BUTTON)
 button.switch_to_input(pull=digitalio.Pull.UP)
-go_dev_mode = not button.value
-print(f"Setting {go_dev_mode=}")
-# print(f"CIRCUITPY {'Unlocked: Dev Mode' if go_dev_mode is True else 'Locke`d: Run Mode'}")
+button_pushed = not button.value
+if button_pushed:
+    go_dev_mode = True
+    print(f"Button pushed -> {go_dev_mode=}")
+else:
+    go_dev_mode = microcontroller.nvm[0] == DEF.MAGIC_NUMBER_DEV_MODE
+    print(f"Button NOT pushed -> {microcontroller.nvm[0]=} -> {go_dev_mode=}")
 
 try:
 
@@ -60,11 +65,13 @@ try:
 
     storage.remount("/", go_dev_mode)
 
-    # Save state to NVM, to pass to main code. (thanks, danhalbert!)
-    old_mode = microcontroller.nvm[0] == DEF.MAGIC_NUMBER_DEV_MODE
-    if old_mode != go_dev_mode:
-        print(f"Changing NVM to {DEF.MAGIC_NUMBER_DEV_MODE if go_dev_mode else DEF.MAGIC_NUMBER_RUN_MODE}")
-        microcontroller.nvm[0] = DEF.MAGIC_NUMBER_DEV_MODE if go_dev_mode else DEF.MAGIC_NUMBER_RUN_MODE
+    # We no longer change boot flag here.
+    # # Save state to NVM, to pass to main code. (thanks, danhalbert!)
+    # #
+    # old_mode = microcontroller.nvm[0] == DEF.MAGIC_NUMBER_DEV_MODE
+    # if old_mode != go_dev_mode:
+    #     print(f"Changing NVM to {DEF.MAGIC_NUMBER_DEV_MODE if go_dev_mode else DEF.MAGIC_NUMBER_RUN_MODE}")
+    #     microcontroller.nvm[0] = DEF.MAGIC_NUMBER_DEV_MODE if go_dev_mode else DEF.MAGIC_NUMBER_RUN_MODE
 
 
     # Blink & hold: green if dev mode, red if run mode, yellow if problem.
@@ -77,8 +84,6 @@ try:
         pixel.fill(RUN_MODE_COLOR)
 
 except Exception as e:
-    print(f"Failed! Can't change mode while developing? ({e})")
+    print(f"Failed! ({e})")
     blink(3, (255, 255, 0))
     pixel.fill((255, 255, 0))
-
-    
