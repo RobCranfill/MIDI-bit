@@ -197,7 +197,7 @@ def toggle_boot_mode(disp):
     nvm_dev_mode = microcontroller.nvm[0] == DEF.MAGIC_NUMBER_DEV_MODE
     nvm_dev_mode = not nvm_dev_mode
     microcontroller.nvm[0] = DEF.MAGIC_NUMBER_DEV_MODE if nvm_dev_mode else DEF.MAGIC_NUMBER_RUN_MODE
-    print(f"Setting {microcontroller.nvm[0]=}")
+    print(f"Setting {microcontroller.nvm[0]=} -> {nvm_dev_mode=}")
     disp.set_text_2(f"Dev: {nvm_dev_mode}")
     time.sleep(2)
     disp.set_text_2("")
@@ -235,7 +235,7 @@ idle_led_blip_time = idle_start_time
 msm_reset = midi_state_machine.midi_state_machine(MIDI_TRIGGER_SEQ_RESET)
 
 # A state machine to watch for the "toggle boot mode" sequence.
-msm_toggle_boot = midi_state_machine.midi_state_machine(MIDI_TRIGGER_SEQ_TOGGLE_BOOT)
+msm_toggle_boot = midi_state_machine.midi_state_machine(MIDI_TRIGGER_SEQ_TOGGLE_BOOT, True)
 
 
 midi_device = None
@@ -262,42 +262,46 @@ while True:
             continue
 
         event_time = time.monotonic()
+
+        # TODO: Should we only pay attention to NoteOn events?
+
         if msg:
 
             # print(f"midi msg: {msg} @ {event_time:.1f}")
             display.set_text_2(spin())
 
             last_event_time = time.monotonic()
+
             if in_session:
-                # pass
-
-                # Also look for command sequences - FIXME: only if in session?
-                if isinstance(msg, NoteOn):
-
-                    if msm_reset.note(msg.note):
-                        print(f"* Got {MIDI_TRIGGER_SEQ_RESET=}")
-                        total_seconds = 0
-                        last_displayed_time = 0
-                        session_length = 0
-                        session_start_time = time.monotonic()
-                        show_total_time(display, total_seconds)
-
-                        try_write_session_data(in_dev_mode, display, total_seconds)
-
-                    elif msm_toggle_boot.note(msg.note):
-                        print(f"* Got {MIDI_TRIGGER_SEQ_TOGGLE_BOOT=}")
-                        toggle_boot_mode(display)
-
-                    # if msm_force_write.note(msg.note):
-                    #     # don't update total_seconds yet, but write the new value
-                    #     total_seconds_temp = total_seconds + session_length
-                    #     print(f"* Force write: {total_seconds=}, {total_seconds_temp=}")
-                    #     try_write_session_data(display, total_seconds_temp)
-
+                pass
             else:
                 print("\nStarting session")
                 session_start_time = time.monotonic()
                 in_session = True
+
+
+            # Also look for command sequences - FIXME: only if in session?
+            if isinstance(msg, NoteOn):
+
+                if msm_reset.note(msg.note):
+                    print(f"* Got {MIDI_TRIGGER_SEQ_RESET=}")
+                    total_seconds = 0
+                    last_displayed_time = 0
+                    session_length = 0
+                    session_start_time = time.monotonic()
+                    show_total_time(display, total_seconds)
+
+                    try_write_session_data(in_dev_mode, display, total_seconds)
+
+                if msm_toggle_boot.note(msg.note):
+                    print(f"* Got {MIDI_TRIGGER_SEQ_TOGGLE_BOOT=}")
+                    toggle_boot_mode(display)
+
+                # if msm_force_write.note(msg.note):
+                #     # don't update total_seconds yet, but write the new value
+                #     total_seconds_temp = total_seconds + session_length
+                #     print(f"* Force write: {total_seconds=}, {total_seconds_temp=}")
+                #     try_write_session_data(display, total_seconds_temp)
 
         else:
             # print("  empty message")
