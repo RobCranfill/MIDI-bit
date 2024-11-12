@@ -197,7 +197,7 @@ def toggle_boot_mode(disp):
     nvm_dev_mode = microcontroller.nvm[0] == DEF.MAGIC_NUMBER_DEV_MODE
     nvm_dev_mode = not nvm_dev_mode
     microcontroller.nvm[0] = DEF.MAGIC_NUMBER_DEV_MODE if nvm_dev_mode else DEF.MAGIC_NUMBER_RUN_MODE
-    print(f"Setting NVM to {microcontroller.nvm[0]=}")
+    print(f"Setting {microcontroller.nvm[0]=}")
     disp.set_text_2(f"Dev: {nvm_dev_mode}")
     time.sleep(2)
     disp.set_text_2("")

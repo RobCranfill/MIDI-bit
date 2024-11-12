@@ -21,13 +21,14 @@ Stretch goals: Internet connectivity, with an app to slice and dice the data all
     * That's G G G Eb F F F D; the tempo doesn't matter.
     * After the attention sequence, 
       * Middle C: Zero out session data (and write it to storage).
-      * Unimplemented/not useful? <strike>D above middle C: Write session data immediately.</strike>
+      * D above middle C: Toggle RUN/DEV mode (see below)
+      * Unimplemented/not useful? <strike>Write session data immediately.</strike>
 
-* RUN/DEV MODE
+* RUN/DEV mode
   * For now, there are these two modes. Useful for development, but ultimately not needed?
   * At boot (running 'boot.py'), the code will blink the NeoPixel blue 5 times, then wait 2 seconds; 
-  if at the end of that period the BOOT button is being pressed we will enter DEV MODE, 
-  otherwise it's RUN MODE.
+  if at the end of that period the BOOT button is being pressed we will enter DEV MODE.
+  * If the BOOT button is not pressed, we look at the Non-volititle memory and enter DEV/RUN mode as set below.
   * boot.py will set the Feather's flash memory to "READ ONLY" if in DEV MODE.
   See [adafruit.com](https://learn.adafruit.com/circuitpython-essentials/circuitpython-storage) for more info.
   * This means in RUN MODE, the default, the CircuitPython code can write to the flash, and can update the accumulated practice time.
@@ -35,6 +36,8 @@ Stretch goals: Internet connectivity, with an app to slice and dice the data all
     This is OK since that would be just garbage, 'testing' numbers anyway.
   * Once we start running 'code'.py', if RUN MODE we set the NeoPixel to red (Red == Run), 
   otherwise set it to green.
+ * As mentioned above, the proper ATTENTION/key sequence will toggle the next RUN/DEV mode.
+
 
 # Hardware Requirements for this project
 * Adafruit "RP2040 with USB A Host" (Adafruit part number 5723)

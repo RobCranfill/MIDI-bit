@@ -1,15 +1,15 @@
 # boot.py for Practice Montior for Feather
 #
 # This will be called at startup.
-# Blink the NeoPixel blue 5 times, then look at the BOOT button.
-#
-# If the button is not pushed, we want "run" mode, 
-# and will mount the flash in non-USB mode, so we can write to Flash/CIRCUITPY from CircuitPython.
-#
-# If the button is pushed, we want "dev" mode,
-# and we can mount the flash as a writable CIRCUITPY drive, editable from the PC dev environment.
-#
-# So normally we will run in non-dev mode, so the code can write session data to the flash.
+
+# The default action for CircuitPython is to enter what we call "dev mode", 
+# but we want the default to be what we call "run mode".
+
+# If the NVM says to go to dev mode, we are done here.
+# If NVM says run mode, give the user a chance to abort that by pressing the BOOT button.
+
+# Either way, flash the LED to show what mode we are going to.
+
 #
 # see https://learn.adafruit.com/circuitpython-essentials?view=all#circuitpython-storage
 #
@@ -39,51 +39,46 @@ def blink(times, color_triple):
         time.sleep(.2)
 
 
-# At startup, blink blue 5 times, pause, then read button.
-blink(5, (0, 0, 255))
-time.sleep(1)
+###########################################################################
 
-go_dev_mode = False
+# Check the NVM state. If set for dev mode, do that.
+# Otherwise give the user a chance to force dev mode; if they don't, go to run mode.
 
-# We will go to "read/write" mode unless the BOOT button is pressed.
-#
-button = digitalio.DigitalInOut(BUTTON)
-button.switch_to_input(pull=digitalio.Pull.UP)
-button_pushed = not button.value
-if button_pushed:
-    go_dev_mode = True
-    print(f"Button pushed -> {go_dev_mode=}")
-else:
-    go_dev_mode = microcontroller.nvm[0] == DEF.MAGIC_NUMBER_DEV_MODE
-    print(f"Button NOT pushed -> {microcontroller.nvm[0]=} -> {go_dev_mode=}")
+go_dev_mode = microcontroller.nvm[0] == DEF.MAGIC_NUMBER_DEV_MODE
+print(f"{microcontroller.nvm[0]=} -> {go_dev_mode=}")
 
-try:
+if not go_dev_mode:
 
-    # For the second parameter of 'storage.remount()':
-    # Pass True to make the CIRCUITPY drive writable by your computer.
-    # Pass False to make the CIRCUITPY drive writable by CircuitPython.
+    # Blink blue 5 times, pause, then read button.
+    blink(5, (0, 0, 255))
+    time.sleep(1)
 
-    storage.remount("/", go_dev_mode)
+    button = digitalio.DigitalInOut(BUTTON)
+    button.switch_to_input(pull=digitalio.Pull.UP)
+    button_pushed = not button.value
+    if button_pushed:
+        go_dev_mode = True
+        print(f"Button pushed -> {go_dev_mode=}")
 
-    # We no longer change boot flag here.
-    # # Save state to NVM, to pass to main code. (thanks, danhalbert!)
-    # #
-    # old_mode = microcontroller.nvm[0] == DEF.MAGIC_NUMBER_DEV_MODE
-    # if old_mode != go_dev_mode:
-    #     print(f"Changing NVM to {DEF.MAGIC_NUMBER_DEV_MODE if go_dev_mode else DEF.MAGIC_NUMBER_RUN_MODE}")
-    #     microcontroller.nvm[0] = DEF.MAGIC_NUMBER_DEV_MODE if go_dev_mode else DEF.MAGIC_NUMBER_RUN_MODE
-
-
-    # Blink & hold: green if dev mode, red if run mode, yellow if problem.
-    #
-    if go_dev_mode:
-        blink(3, DEV_MODE_COLOR)
-        pixel.fill(DEV_MODE_COLOR)
     else:
-        blink(3, RUN_MODE_COLOR)
-        pixel.fill(RUN_MODE_COLOR)
+        try:
 
-except Exception as e:
-    print(f"Failed! ({e})")
-    blink(3, (255, 255, 0))
-    pixel.fill((255, 255, 0))
+            # For the second parameter of 'storage.remount()':
+            # Pass True to make the CIRCUITPY drive writable by your computer.
+            # Pass False to make the CIRCUITPY drive writable by CircuitPython.
+
+            storage.remount("/", False)
+
+        except Exception as e:
+            print(f"Failed! ({e})")
+            blink(5, (255, 255, 0))
+            pixel.fill((255, 255, 0))
+
+# Blink & hold: green if dev mode, red if run mode.
+#
+if go_dev_mode:
+    blink(3, DEV_MODE_COLOR)
+    pixel.fill(DEV_MODE_COLOR)
+else:
+    blink(3, RUN_MODE_COLOR)
+    pixel.fill(RUN_MODE_COLOR)
