@@ -127,9 +127,9 @@ def read_session_data():
     return result
 
 def find_midi_device(disp):
-    """Does not return until it sees a MIDI device"""
+    """Does not return until it finds a MIDI device"""
 
-    print("Looking for midi devices...")
+    print("Looking for MIDI devices in USB...")
     disp.set_text_2("Looking for MIDI...")
     raw_midi = None
     attempt = 1
@@ -139,34 +139,32 @@ def find_midi_device(disp):
     while raw_midi is None:
         all_devices = usb.core.find(find_all=True)
         for device in all_devices:
-            print(f"looking at device {device=}") # FIXME: this is not useful
+            print(f" - looking at USB device vendor 0x{device.idVendor:04x}, product 0x{device.idProduct:04x}") # FIXME: this is not useful
 
             # I guess this is how we find a MIDI device: try it; if not MIDI, will throw exception.
             try:
                 raw_midi = adafruit_usb_host_midi.MIDI(device, timeout=MIDI_TIMEOUT)
-                print(f" Found vendor 0x{device.idVendor:04x}, device 0x{device.idProduct:04x}")
-                print(f" {device.product=}")
+                print(f" ^ MIDI OK for device {device.product=}")
                 break
             except ValueError:
                 print(" ValueError?")
                 continue
 
-        # FIXME: what?
-        if raw_midi is not None:
-            continue
+        # Looked at all devices, didn't find MIDI. Try again.
+        if raw_midi is None:
 
-        print(f"No MIDI device found on try #{attempt}. Sleeping....")
-        time.sleep(1)
+            print(f"No MIDI device found on try #{attempt}. Sleeping....")
+            time.sleep(1)
 
-        # No-MIDI timeout; flash LED twice
-        if time.monotonic() - no_midi_idle_start_time > DISPLAY_IDLE_TIMEOUT:
-            # print("no-MIDI idle timeout!")
-            disp.blank_screen()
-            flash_led(0.01)
-            time.sleep(0.1)
-            flash_led(0.01)
+            # No-MIDI timeout; flash LED twice
+            if time.monotonic() - no_midi_idle_start_time > DISPLAY_IDLE_TIMEOUT:
+                # print("no-MIDI idle timeout!")
+                disp.blank_screen()
+                flash_led(0.01)
+                time.sleep(0.1)
+                flash_led(0.01)
 
-        attempt += 1
+            attempt += 1
 
     midi_device = adafruit_midi.MIDI(midi_in=raw_midi)
     disp.set_text_2(f"Found {device.product}")
@@ -231,6 +229,10 @@ in_session = False
 session_start_time = 0
 
 show_total_time(display, total_seconds)
+
+# last_displayed_time is the (integer) time we last displayed; only update if changed.
+# (The time itself is a float that's always changing.)
+# 
 last_displayed_time = int(total_seconds)
 
 idle_start_time = time.monotonic()
@@ -245,116 +247,124 @@ msm_toggle_boot = midi_state_machine.midi_state_machine(MIDI_TRIGGER_SEQ_TOGGLE_
 # For testing shit
 # msm_test = midi_state_machine.midi_state_machine(MIDI_TRIGGER_SEQ_TEST)
 
-
+# Main event loop. Does not exit.
+#
 midi_device = None
 while True:
-    # print(f"waiting for event; {in_session=}")
 
+    # This doesn't return until we have a MIDI device.
+    # TODO: Is it always a *usable* device?
+    #
     if midi_device is None:
+        print("MEL loking for MIDI....")
         midi_device = find_midi_device(display)
 
+    # print(f"waiting for event; {in_session=}")
     # TODO: remove this as 'else' to fix one-off error?
-    else:
-        try:
-            msg = midi_device.receive()
-        except usb.core.USBError:
-            print("usb.core.USBError!")
+    # else:
 
-            # Assume this is a MIDI disconnect?
-            if in_session:
-                total_seconds_temp = total_seconds + session_length
-                print(f"* Force write: {total_seconds=}, {session_length=}")
-                try_write_session_data(in_dev_mode, display, total_seconds+session_length)
+    try:
+        msg = midi_device.receive()
+    except usb.core.USBError:
+        print("usb.core.USBError!")
 
-            midi_device = None
-            continue
+        # Assume this is a MIDI disconnect?
+        if in_session:
+            total_seconds_temp = total_seconds + session_length
+            print(f"* Force write: {total_seconds=}, {session_length=}")
+            try_write_session_data(in_dev_mode, display, total_seconds+session_length)
 
-        event_time = time.monotonic()
+        midi_device = None
+        continue
 
-        # TODO: Should we only pay attention to NoteOn events?
+    event_time = time.monotonic()
 
-        if msg:
+    # TODO: Should we only pay attention to NoteOn events?
 
-            # print(f"midi msg: {msg} @ {event_time:.1f}")
-            display.set_text_2(spin())
+    if msg:
 
-            last_event_time = time.monotonic()
+        # print(f"midi msg: {msg} @ {event_time:.1f}")
+        display.set_text_2(spin())
 
-            if in_session:
-                pass
-            else:
-                print("\nStarting session")
-                session_start_time = time.monotonic()
-                in_session = True
-
-
-            # Also look for command sequences - FIXME: only if in session?
-            if isinstance(msg, NoteOn):
-
-                if msm_reset.note(msg.note):
-                    print(f"* Got {MIDI_TRIGGER_SEQ_RESET=}")
-                    total_seconds = 0
-                    last_displayed_time = 0
-                    session_length = 0
-                    session_start_time = time.monotonic()
-                    show_total_time(display, total_seconds)
-
-                    try_write_session_data(in_dev_mode, display, total_seconds)
-
-                if msm_toggle_boot.note(msg.note):
-                    print(f"* Got {MIDI_TRIGGER_SEQ_TOGGLE_BOOT=}")
-                    toggle_boot_mode(display)
-
-                # if msm_test.note(msg.note):
-                #     print(f"ENTER TEST MODE {msg.note=}")
-
-                # if msm_force_write.note(msg.note):
-                #     # don't update total_seconds yet, but write the new value
-                #     total_seconds_temp = total_seconds + session_length
-                #     print(f"* Force write: {total_seconds=}, {total_seconds_temp=}")
-                #     try_write_session_data(display, total_seconds_temp)
-
-        else:
-            # print("  empty message")
-            pass
+        last_event_time = time.monotonic()
 
         if in_session:
-            if event_time - last_event_time > SESSION_TIMEOUT:
+            pass
+        else:
+            print("\nStarting session")
+            session_start_time = time.monotonic()
+            in_session = True
 
-                # print("\nSESSION_TIMEOUT!")
-                in_session = False
-                display.set_text_2("")
 
-                total_seconds += session_length
+        # Also look for command sequences - FIXME: only if in session?
+        if isinstance(msg, NoteOn):
+
+            if msm_reset.note(msg.note):
+                print(f"* Got {MIDI_TRIGGER_SEQ_RESET=}")
+                total_seconds = 0
+                last_displayed_time = 0
+                session_length = 0
+                session_start_time = time.monotonic()
+                show_total_time(display, total_seconds)
 
                 try_write_session_data(in_dev_mode, display, total_seconds)
 
-                # deal with screen timeout
-                idle_start_time = time.monotonic()
+            if msm_toggle_boot.note(msg.note):
+                print(f"* Got {MIDI_TRIGGER_SEQ_TOGGLE_BOOT=}")
+                toggle_boot_mode(display)
 
-            else:
-                # update current session info
-                session_length = time.monotonic() - session_start_time
-                # print(f"  Session now {as_hms(session_length)}")
+            # if msm_test.note(msg.note):
+            #     print(f"ENTER TEST MODE {msg.note=}")
 
-                show_total_time(display, total_seconds + session_length)
+            # if msm_force_write.note(msg.note):
+            #     # don't update total_seconds yet, but write the new value
+            #     total_seconds_temp = total_seconds + session_length
+            #     print(f"* Force write: {total_seconds=}, {total_seconds_temp=}")
+            #     try_write_session_data(display, total_seconds_temp)
 
-                new_total = total_seconds + session_length
-                if last_displayed_time != int(new_total):
-                    last_displayed_time = int(new_total)
-                    # print(f" updating at {last_displayed_time}")
-                    show_total_time(display, new_total)
+    else:
+        # print("  empty message")
+        pass
+
+    # We have handled the event/note. Now do other stuff
+    #
+    if in_session:
+
+        # Session timeout?
+        if event_time - last_event_time > SESSION_TIMEOUT:
+
+            # print("\nSESSION_TIMEOUT!")
+            in_session = False
+            display.set_text_2("")
+
+            total_seconds += session_length
+
+            try_write_session_data(in_dev_mode, display, total_seconds)
+
+            # deal with screen timeout
+            idle_start_time = time.monotonic()
 
         else:
-            # print("  not in session...")
+            # update current session info
+            session_length = time.monotonic() - session_start_time
+            # print(f"  Session now {as_hms(session_length)}")
 
-            # With-MIDI display timeout
-            if time.monotonic() - idle_start_time > DISPLAY_IDLE_TIMEOUT:
-                # print("idle timeout!")
-                display.blank_screen()
+            new_total = total_seconds + session_length
+            if last_displayed_time != int(new_total):
+                last_displayed_time = int(new_total)
+                # print(f" updating at {last_displayed_time}")
+                show_total_time(display, new_total)
 
-                # Single flash of LED, once per second.
-                if time.monotonic() - idle_led_blip_time > 1:
-                    flash_led(0.01)
-                    idle_led_blip_time = time.monotonic()
+    else:
+        # print("  not in session...")
+
+        # With-MIDI display timeout
+        if time.monotonic() - idle_start_time > DISPLAY_IDLE_TIMEOUT:
+            # print("idle timeout!")
+            display.blank_screen()
+
+            # Single flash of LED, once per second.
+            if time.monotonic() - idle_led_blip_time > 1:
+                flash_led(0.01)
+                idle_led_blip_time = time.monotonic()
 
