@@ -56,6 +56,7 @@ SETTINGS_NAME = "pm_settings.text"
 MIDI_TRIGGER_SEQ_PREFIX = (67, 67, 67, 63, 65, 65, 65, 62)
 MIDI_TRIGGER_SEQ_RESET = MIDI_TRIGGER_SEQ_PREFIX + (60,) # middle C
 MIDI_TRIGGER_SEQ_TOGGLE_BOOT = MIDI_TRIGGER_SEQ_PREFIX + (62,) # D above middle C
+MIDI_TRIGGER_SEQ_TEST = MIDI_TRIGGER_SEQ_PREFIX + (64,) # E
 
 
 neopixel_ = neopixel.NeoPixel(board.NEOPIXEL, 1)
@@ -86,9 +87,10 @@ def set_run_or_dev():
         neopixel_.fill(flash_color_)
         SESSION_TIMEOUT = 5
         DISPLAY_IDLE_TIMEOUT = 10
-        print(f"DEV MODE: Setting timeouts to {SESSION_TIMEOUT=}, {DISPLAY_IDLE_TIMEOUT=}\n")
+        print(f"\nDEV MODE: Setting timeouts to {SESSION_TIMEOUT=}, {DISPLAY_IDLE_TIMEOUT=}\n")
     else:
         neopixel_.fill(flash_color_)
+        print(f"\nRUN MODE")
     return is_dev_mode
 
 SPINNER = "|/-\\"
@@ -137,16 +139,19 @@ def find_midi_device(disp):
     while raw_midi is None:
         all_devices = usb.core.find(find_all=True)
         for device in all_devices:
+            print(f"looking at device {device=}") # FIXME: this is not useful
+
             # I guess this is how we find a MIDI device: try it; if not MIDI, will throw exception.
-            print(f" looking at device {device=}")
             try:
                 raw_midi = adafruit_usb_host_midi.MIDI(device, timeout=MIDI_TIMEOUT)
-                print(f"Found vendor 0x{device.idVendor:04x}, device 0x{device.idProduct:04x}")
-                print(f"{device.product=}")
+                print(f" Found vendor 0x{device.idVendor:04x}, device 0x{device.idProduct:04x}")
+                print(f" {device.product=}")
                 break
             except ValueError:
+                print(" ValueError?")
                 continue
 
+        # FIXME: what?
         if raw_midi is not None:
             continue
 
@@ -235,7 +240,10 @@ idle_led_blip_time = idle_start_time
 msm_reset = midi_state_machine.midi_state_machine(MIDI_TRIGGER_SEQ_RESET)
 
 # A state machine to watch for the "toggle boot mode" sequence.
-msm_toggle_boot = midi_state_machine.midi_state_machine(MIDI_TRIGGER_SEQ_TOGGLE_BOOT, True)
+msm_toggle_boot = midi_state_machine.midi_state_machine(MIDI_TRIGGER_SEQ_TOGGLE_BOOT)
+
+# For testing shit
+# msm_test = midi_state_machine.midi_state_machine(MIDI_TRIGGER_SEQ_TEST)
 
 
 midi_device = None
@@ -296,6 +304,9 @@ while True:
                 if msm_toggle_boot.note(msg.note):
                     print(f"* Got {MIDI_TRIGGER_SEQ_TOGGLE_BOOT=}")
                     toggle_boot_mode(display)
+
+                # if msm_test.note(msg.note):
+                #     print(f"ENTER TEST MODE {msg.note=}")
 
                 # if msm_force_write.note(msg.note):
                 #     # don't update total_seconds yet, but write the new value
