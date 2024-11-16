@@ -130,7 +130,7 @@ def find_midi_device(disp):
     """Does not return until it finds a MIDI device"""
 
     print("Looking for MIDI devices in USB...")
-    disp.set_text_2("Looking for MIDI...")
+    display_message_for_a_bit(disp, "Looking for MIDI", delay=1)
     raw_midi = None
     attempt = 1
     
@@ -167,8 +167,10 @@ def find_midi_device(disp):
             attempt += 1
 
     midi_device = adafruit_midi.MIDI(midi_in=raw_midi)
+
     disp.set_text_2(f"Found {device.product}")
-    time.sleep(2) # FIXME ? arbitrary
+    time.sleep(2)
+
     return midi_device
 
 
@@ -176,24 +178,18 @@ def try_write_session_data(dev_mode, disp, seconds):
     '''Write the given elapsed time to the data file. Display errors as needed.'''
     try:
         write_session_data(seconds)
-        disp.set_text_2("DATA SAVED")
-        time.sleep(2)
+        display_message_for_a_bit(disp, "DATA SAVED")
 
     except Exception as e:
 
         # we expect write errors in dev mode.
         if dev_mode:
             print("Can't write, as expected")
-            disp.set_text_2("FAILED TO SAVE - OK")
-            time.sleep(2)
-            disp.set_text_2("")
+            display_message_for_a_bit(disp, "FAILED TO SAVE - OK")
 
         else:
             print(f"Can't write! {e}")
-
-            disp.set_text_2("FAILED TO SAVE!")
-            time.sleep(2)
-            disp.set_text_2("")
+            display_message_for_a_bit(disp, "FAILED TO SAVE!")
 
 
 def toggle_boot_mode(disp):
@@ -201,8 +197,11 @@ def toggle_boot_mode(disp):
     nvm_dev_mode = not nvm_dev_mode
     microcontroller.nvm[0] = DEF.MAGIC_NUMBER_DEV_MODE if nvm_dev_mode else DEF.MAGIC_NUMBER_RUN_MODE
     print(f"Setting {microcontroller.nvm[0]=} -> {nvm_dev_mode=}")
-    disp.set_text_2(f"Dev: {nvm_dev_mode}")
-    time.sleep(2)
+    display_message_for_a_bit(disp, f"Dev: {nvm_dev_mode}")
+
+def display_message_for_a_bit(disp, text, delay=2):
+    disp.set_text_2(str(text))
+    time.sleep(delay)
     disp.set_text_2("")
 
 
@@ -282,21 +281,20 @@ while True:
     # TODO: Should we only pay attention to NoteOn events?
 
     if msg:
+        last_event_time = time.monotonic()
 
         # print(f"midi msg: {msg} @ {event_time:.1f}")
         display.set_text_2(spin())
 
-        last_event_time = time.monotonic()
-
-        if in_session:
-            pass
-        else:
+        if not in_session:
             print("\nStarting session")
             session_start_time = time.monotonic()
             in_session = True
 
+            # This would only be missing for <1 sec, but hey.
+            show_total_time(display, total_seconds)
 
-        # Also look for command sequences - FIXME: only if in session?
+        # Look for command sequences.
         if isinstance(msg, NoteOn):
 
             if msm_reset.note(msg.note):
@@ -322,11 +320,11 @@ while True:
             #     print(f"* Force write: {total_seconds=}, {total_seconds_temp=}")
             #     try_write_session_data(display, total_seconds_temp)
 
-    else:
-        # print("  empty message")
-        pass
+    # else:
+    #     # print("  empty message")
+    #     pass
 
-    # We have handled the event/note. Now do other stuff
+    # We have handled the event/note. Now do other stuff.
     #
     if in_session:
 
@@ -341,11 +339,11 @@ while True:
 
             try_write_session_data(in_dev_mode, display, total_seconds)
 
-            # deal with screen timeout
+            # For idle screen timeout
             idle_start_time = time.monotonic()
 
         else:
-            # update current session info
+            # Update current session info
             session_length = time.monotonic() - session_start_time
             # print(f"  Session now {as_hms(session_length)}")
 
