@@ -12,6 +12,12 @@ For CircuitPython, on the device known as
 "Adafruit Feather RP2040 with USB Type A Host" (whew!)
 (Adafruit Product ID: 5723)
 
+To force startup mode,
+
+import microcontroller
+microcontroller.nvm[0] = 0x12 # for run
+microcontroller.nvm[0] = 0x34 # for dev
+
 """
 
 # stdlibs
@@ -220,7 +226,8 @@ total_seconds = int(read_session_data())
 print(f"read_session_data: {total_seconds=}")
 
 # The display.
-display = two_line_oled.two_line_oled()
+# FIXME: Why is the I2C addr different???
+display = two_line_oled.two_line_oled(0x3d, 64)
 
 last_event_time = time.monotonic()
 
