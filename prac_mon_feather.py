@@ -290,7 +290,7 @@ while True:
     if msg:
         last_event_time = time.monotonic()
 
-        # print(f"midi msg: {msg} @ {event_time:.1f}")
+        print(f"\nmidi msg: {msg} @ {event_time:.1f}")
         display.set_text_2(spin())
 
         if not in_session:
@@ -303,6 +303,11 @@ while True:
 
         # Look for command sequences.
         if isinstance(msg, NoteOn):
+
+            # Could be a zero-velofiy "note off".
+            if msg.velocity == 0:
+                # print("note off!")
+                continue
 
             if msm_reset.note(msg.note):
                 print(f"* Got {MIDI_TRIGGER_SEQ_RESET=}")
