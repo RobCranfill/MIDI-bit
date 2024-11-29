@@ -13,7 +13,7 @@ FONT_PATH = "fonts/cmuntb22.bdf"
 
 class two_line_oled:
     '''Display on an Adafruit 128x64 OLED'''
-    def __init__(self):
+    def __init__(self, i2c_addr, height):
 
         displayio.release_displays()
 
@@ -21,11 +21,13 @@ class two_line_oled:
             i2c = board.I2C()
         except:
             print("Is the I2C wiring correct?")
+            raise Exception
             return
 
-        display_bus = displayio.I2CDisplay(i2c, device_address=0x3C)
+        display_bus = displayio.I2CDisplay(i2c, device_address=i2c_addr)
         WIDTH = 128
-        HEIGHT = 32
+        HEIGHT = height
+        
         display = adafruit_displayio_ssd1306.SSD1306(display_bus, width=WIDTH, height=HEIGHT)
 
         # TODO: check for failure?

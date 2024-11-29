@@ -12,6 +12,12 @@ For CircuitPython, on the device known as
 "Adafruit Feather RP2040 with USB Type A Host" (whew!)
 (Adafruit Product ID: 5723)
 
+To force startup mode,
+
+import microcontroller
+microcontroller.nvm[0] = 0x12 # for run
+microcontroller.nvm[0] = 0x34 # for dev
+
 """
 
 # stdlibs
@@ -220,7 +226,8 @@ total_seconds = int(read_session_data())
 print(f"read_session_data: {total_seconds=}")
 
 # The display.
-display = two_line_oled.two_line_oled()
+# FIXME: Why is the I2C addr different???
+display = two_line_oled.two_line_oled(0x3d, 64)
 
 last_event_time = time.monotonic()
 
@@ -283,7 +290,7 @@ while True:
     if msg:
         last_event_time = time.monotonic()
 
-        # print(f"midi msg: {msg} @ {event_time:.1f}")
+        print(f"\nmidi msg: {msg} @ {event_time:.1f}")
         display.set_text_2(spin())
 
         if not in_session:
@@ -296,6 +303,11 @@ while True:
 
         # Look for command sequences.
         if isinstance(msg, NoteOn):
+
+            # Could be a zero-velofiy "note off".
+            if msg.velocity == 0:
+                # print("note off!")
+                continue
 
             if msm_reset.note(msg.note):
                 print(f"* Got {MIDI_TRIGGER_SEQ_RESET=}")
