@@ -46,6 +46,7 @@ import adafruit_usb_host_midi
 import two_line_oled
 import midi_state_machine
 import midibit_defines as DEF
+import ascii_thing
 
 
 # TODO: how does this affect responsiveness? buffering? what-all??
@@ -133,10 +134,16 @@ def read_session_data():
     return result
 
 def find_midi_device(disp):
-    """Does not return until it finds a MIDI device"""
+    """Does not return until it finds a (suitable?) MIDI device"""
 
-    print("Looking for MIDI devices in USB...")
-    display_message_for_a_bit(disp, "Looking for MIDI", delay=1)
+    # does this help weird startup behavior?
+    time.sleep(1)
+
+    print("\nLooking for MIDI devices...")
+
+    # display_message_for_a_bit(disp, "Looking for MIDI", delay=1)
+    disp.set_text_2("Looking for MIDI!....")
+
     raw_midi = None
     attempt = 1
     
@@ -144,17 +151,32 @@ def find_midi_device(disp):
 
     while raw_midi is None:
         all_devices = usb.core.find(find_all=True)
+        
+        #  no can do 
+        # print(f"  Found {len(all_devices)} devices?")
+
         for device in all_devices:
-            print(f" - looking at USB device vendor 0x{device.idVendor:04x}, product 0x{device.idProduct:04x}") # FIXME: this is not useful
+            
+            # FIXME: this is not useful?
+            print(f" - looking at USB device vendor 0x{device.idVendor:04x}, product 0x{device.idProduct:04x}") 
 
             # I guess this is how we find a MIDI device: try it; if not MIDI, will throw exception.
             try:
                 raw_midi = adafruit_usb_host_midi.MIDI(device, timeout=MIDI_TIMEOUT)
-                print(f" ^ MIDI OK for device {device.product=}")
-                break
+                print(f" ^ MIDI OK for {device.product=}")
+                if device.product is None:
+                    print("FUNNY DEVICE; SKIPPING!")
+                    continue
+                else:
+                   break
+
             except ValueError:
-                print(" ValueError?")
+                print(" * adafruit_usb_host_midi.MIDI: ValueError?")
                 continue
+            except Exception as e:
+                    print(f" * adafruit_usb_host_midi.MIDI: {e}")
+
+        print(f"  Done iterating MIDI devices, found {raw_midi}")
 
         # Looked at all devices, didn't find MIDI. Try again.
         if raw_midi is None:
@@ -172,10 +194,15 @@ def find_midi_device(disp):
 
             attempt += 1
 
-    midi_device = adafruit_midi.MIDI(midi_in=raw_midi)
+    try:
+        midi_device = adafruit_midi.MIDI(midi_in=raw_midi)
+    except Exception as e:
+        print(f" * adafruit_midi.MIDI: {e}")
+
+    print(f"  returning {midi_device=}")
 
     disp.set_text_2(f"Found {device.product}")
-    time.sleep(2)
+    # time.sleep(2)
 
     return midi_device
 
@@ -209,6 +236,7 @@ def display_message_for_a_bit(disp, text, delay=2):
     disp.set_text_2(str(text))
     time.sleep(delay)
     disp.set_text_2("")
+
 
 
 # ------------------------------------------------------------------------------
@@ -251,7 +279,10 @@ msm_reset = midi_state_machine.midi_state_machine(MIDI_TRIGGER_SEQ_RESET)
 msm_toggle_boot = midi_state_machine.midi_state_machine(MIDI_TRIGGER_SEQ_TOGGLE_BOOT)
 
 # For testing shit
-# msm_test = midi_state_machine.midi_state_machine(MIDI_TRIGGER_SEQ_TEST)
+msm_test = midi_state_machine.midi_state_machine(MIDI_TRIGGER_SEQ_TEST)
+
+# wait for USB ready???
+time.sleep(2) 
 
 # Main event loop. Does not exit.
 #
@@ -259,11 +290,18 @@ midi_device = None
 while True:
 
     # This doesn't return until we have a MIDI device.
-    # TODO: Is it always a *usable* device?
+    # TODO: Is it always a *usable* device? No. Something funny here.
     #
     if midi_device is None:
+
         print("MEL loking for MIDI....")
+
+        # TODO: check for None?
         midi_device = find_midi_device(display)
+        print("  back from find_midi_device")
+
+        # stop screen timeout immediately after finding ?
+        last_event_time = time.monotonic()
 
     # print(f"waiting for event; {in_session=}")
     # TODO: remove this as 'else' to fix one-off error?
@@ -271,8 +309,8 @@ while True:
 
     try:
         msg = midi_device.receive()
-    except usb.core.USBError:
-        print("usb.core.USBError!")
+    except usb.core.USBError as e:
+        print(f" ** midi_device.receive: usb.core.USBError: '{e}'")
 
         # Assume this is a MIDI disconnect?
         if in_session:
@@ -280,17 +318,24 @@ while True:
             print(f"* Force write: {total_seconds=}, {session_length=}")
             try_write_session_data(in_dev_mode, display, total_seconds+session_length)
 
+            # TODO: end the session?
+
+        last_event_time = time.monotonic()
+
         midi_device = None
         continue
 
+
     event_time = time.monotonic()
 
-    # TODO: Should we only pay attention to NoteOn events?
-
+    # TODO: This acts on *any* kind of MIDI message - on, off, CC, etc.
+    # Should we only pay attention to NoteOn events?
+    # 
     if msg:
+        # print(f"midi msg: {msg} @ {event_time:.1f}")
+
         last_event_time = time.monotonic()
 
-        print(f"\nmidi msg: {msg} @ {event_time:.1f}")
         display.set_text_2(spin())
 
         if not in_session:
@@ -304,7 +349,7 @@ while True:
         # Look for command sequences.
         if isinstance(msg, NoteOn):
 
-            # Could be a zero-velofiy "note off".
+            # Could be a zero-velocity "note off".
             if msg.velocity == 0:
                 # print("note off!")
                 continue
@@ -323,8 +368,37 @@ while True:
                 print(f"* Got {MIDI_TRIGGER_SEQ_TOGGLE_BOOT=}")
                 toggle_boot_mode(display)
 
-            # if msm_test.note(msg.note):
-            #     print(f"ENTER TEST MODE {msg.note=}")
+
+            if msm_test.note(msg.note):
+
+                print(f"ENTER ASCII MODE!")
+
+                at = ascii_thing.ascii_thing()
+
+                handle_ascii = True
+                while handle_ascii:
+
+                    try:
+                        msg = midi_device.receive()
+                    except usb.core.USBError:
+                        print("usb.core.USBError!")
+                        continue
+                    
+                    if msg is None:
+                        continue
+
+                    if isinstance(msg, NoteOn):
+                        # Could be a zero-velocity "note off".
+                        if msg.velocity == 0:
+                            print("note off! skipping")
+                            continue
+                        at_result = at.process_note(msg.note)
+                        if at_result is not None:
+                            print(f"Got final string: {at_result}")
+                            handle_ascii = False
+                            last_event_time = time.monotonic() # keep session alive
+                            break 
+                        at.display()
 
             # if msm_force_write.note(msg.note):
             #     # don't update total_seconds yet, but write the new value
