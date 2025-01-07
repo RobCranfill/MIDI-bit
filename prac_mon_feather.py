@@ -287,6 +287,7 @@ time.sleep(2)
 # Main event loop. Does not exit.
 #
 midi_device = None
+msg_number = 0
 while True:
 
     # This doesn't return until we have a MIDI device.
@@ -328,10 +329,18 @@ while True:
 
     event_time = time.monotonic()
 
+
     # TODO: This acts on *any* kind of MIDI message - on, off, CC, etc.
     # Should we only pay attention to NoteOn events?
     # 
     if msg:
+        msg_number += 1
+
+        if not isinstance(msg, NoteOn):
+            print(f"Not a MIDI ON message! ({msg_number})")
+            print(f"  > midi msg: {msg} @ {event_time:.1f}")
+            continue
+    
         # print(f"midi msg: {msg} @ {event_time:.1f}")
 
         last_event_time = time.monotonic()
