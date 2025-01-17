@@ -43,10 +43,12 @@ from adafruit_midi.pitch_bend import PitchBend
 import adafruit_usb_host_midi
 
 # Our libs
+import one_line_oled
 import two_line_oled
+
 import midi_state_machine
 import midibit_defines as DEF
-import ascii_thing
+# import ascii_thing
 
 
 # TODO: how does this affect responsiveness? buffering? what-all??
@@ -253,9 +255,21 @@ in_dev_mode = set_run_or_dev()
 total_seconds = int(read_session_data())
 print(f"read_session_data: {total_seconds=}")
 
+
 # The display.
-# FIXME: Why is the I2C addr different???
-display = two_line_oled.two_line_oled(0x3d, 64)
+#
+display = None
+try:
+    display = two_line_oled.two_line_oled(0x3d, 64)
+    print("Created two-line display OK!")
+except:
+    display = one_line_oled.one_line_oled()
+    print("Created one-line display OK!")
+if display == None:
+    print("Can't init display??")
+    while True:
+        pass
+
 
 last_event_time = time.monotonic()
 
@@ -337,8 +351,8 @@ while True:
         msg_number += 1
 
         if not isinstance(msg, NoteOn):
-            print(f"Not a MIDI ON message! ({msg_number})")
-            print(f"  > midi msg: {msg} @ {event_time:.1f}")
+            # print(f"Not a MIDI ON message! ({msg_number})")
+            # print(f"  > midi msg: {msg} @ {event_time:.1f}")
             continue
     
         # print(f"midi msg: {msg} @ {event_time:.1f}")
@@ -358,7 +372,7 @@ while True:
         # Look for command sequences.
         if isinstance(msg, NoteOn):
 
-            # Could be a zero-velocity "note off".
+            # Could be a zero-velocity NoteOn which is really a "note off".
             if msg.velocity == 0:
                 # print("note off!")
                 continue
