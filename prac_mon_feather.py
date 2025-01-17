@@ -48,7 +48,6 @@ import two_line_oled
 
 import midi_state_machine
 import midibit_defines as DEF
-# import ascii_thing
 
 
 # TODO: how does this affect responsiveness? buffering? what-all??
@@ -292,8 +291,8 @@ msm_reset = midi_state_machine.midi_state_machine(MIDI_TRIGGER_SEQ_RESET)
 # A state machine to watch for the "toggle boot mode" sequence.
 msm_toggle_boot = midi_state_machine.midi_state_machine(MIDI_TRIGGER_SEQ_TOGGLE_BOOT)
 
-# For testing shit
-msm_test = midi_state_machine.midi_state_machine(MIDI_TRIGGER_SEQ_TEST)
+# # For testing shit
+# msm_test = midi_state_machine.midi_state_machine(MIDI_TRIGGER_SEQ_TEST)
 
 # wait for USB ready??? nope
 # time.sleep(2) 
@@ -390,38 +389,6 @@ while True:
             if msm_toggle_boot.note(msg.note):
                 print(f"* Got {MIDI_TRIGGER_SEQ_TOGGLE_BOOT=}")
                 toggle_boot_mode(display)
-
-
-            if msm_test.note(msg.note):
-
-                print(f"ENTER ASCII MODE!")
-
-                at = ascii_thing.ascii_thing()
-
-                handle_ascii = True
-                while handle_ascii:
-
-                    try:
-                        msg = midi_device.receive()
-                    except usb.core.USBError:
-                        print("usb.core.USBError!")
-                        continue
-                    
-                    if msg is None:
-                        continue
-
-                    if isinstance(msg, NoteOn):
-                        # Could be a zero-velocity "note off".
-                        if msg.velocity == 0:
-                            print("note off! skipping")
-                            continue
-                        at_result = at.process_note(msg.note)
-                        if at_result is not None:
-                            print(f"Got final string: {at_result}")
-                            handle_ascii = False
-                            last_event_time = time.monotonic() # keep session alive
-                            break 
-                        at.display()
 
             # if msm_force_write.note(msg.note):
             #     # don't update total_seconds yet, but write the new value
