@@ -136,8 +136,8 @@ def read_session_data():
 def find_midi_device(disp):
     """Does not return until it finds a (suitable?) MIDI device"""
 
-    # does this help weird startup behavior?
-    time.sleep(1)
+    # does this help weird startup behavior? No,
+    # time.sleep(1)
 
     print("\nLooking for MIDI devices...")
 
@@ -281,8 +281,8 @@ msm_toggle_boot = midi_state_machine.midi_state_machine(MIDI_TRIGGER_SEQ_TOGGLE_
 # For testing shit
 msm_test = midi_state_machine.midi_state_machine(MIDI_TRIGGER_SEQ_TEST)
 
-# wait for USB ready???
-time.sleep(2) 
+# wait for USB ready??? nope
+# time.sleep(2) 
 
 # Main event loop. Does not exit.
 #
