@@ -29,12 +29,9 @@ import terminalio
 
 TEXT_COLOR_ACTIVE   = 0x00_00_00
 TEXT_COLOR_INACTIVE = 0xA0_A0_A0
-
+BACKGROUND_COLOR = 0xA0_A0_A0
 
 BLACK = 0x000000
-BACKGROUND_COLOR = 0x40_40_40
-FRAME_COLOR = 0x00_00_FF
-BORDER_SIZE = 5
 
 HEIGHT = 128
 WIDTH  = 128
@@ -62,46 +59,49 @@ class TFT144Display():
 
         color_bitmap = displayio.Bitmap(WIDTH, HEIGHT, 1)
         color_palette = displayio.Palette(1)
-        color_palette[0] = FRAME_COLOR
+        color_palette[0] = BACKGROUND_COLOR
 
         bg_sprite = displayio.TileGrid(color_bitmap, pixel_shader=color_palette, x=0, y=0)
         splash.append(bg_sprite)
 
-        # # Draw a smaller inner rectangle
-        # inner_bitmap = displayio.Bitmap(WIDTH-BORDER_SIZE*2, HEIGHT-BORDER_SIZE*2, 1)
-        # inner_palette = displayio.Palette(1)
-        # inner_palette[0] = BACKGROUND_COLOR
-        # inner_sprite = displayio.TileGrid(inner_bitmap, pixel_shader=inner_palette, x=BORDER_SIZE, y=BORDER_SIZE)
-        # splash.append(inner_sprite)
 
-        # font_to_use = terminalio.FONT
-        font_to_use = bitmap_font.load_font("fonts/cmuntb22.bdf")
+        little_font = terminalio.FONT
+        big_font = bitmap_font.load_font("fonts/cmuntb22.bdf")
 
         y_height = 20
 
-        # tx = BORDER_SIZE + 2
         tx = 2
         ty = 10
-        lab = label.Label(font_to_use, text="Practice", scale=1, color=BLACK, x=tx, y=ty)
+        lab = label.Label(big_font, text="Practice", scale=1, color=BLACK, x=tx, y=ty)
         splash.append(lab)
         self._label_1 = lab
 
         ty += y_height
-        text_area = label.Label(font_to_use, text=" 0:00:00", scale=1, color=BLACK,  x=tx, y=ty)
+        text_area = label.Label(big_font, text="0:00:00", scale=1, color=BLACK, x=tx+5, y=ty)
         splash.append(text_area)
         self._text_area_1 = text_area
 
         ty += y_height + 5
-        lab = label.Label(font_to_use, text="Play", scale=1, color=BLACK, x=tx, y=ty)
+        lab = label.Label(big_font, text="Play", scale=1, color=BLACK, x=tx, y=ty)
         splash.append(lab)
         self._label_2 = lab
 
         ty += y_height
-        text_area = label.Label(font_to_use, text=" 0:00:00", scale=1, color=BLACK,  x=tx, y=ty)
+        text_area = label.Label(big_font, text="0:00:00", scale=1, color=BLACK, x=tx+5, y=ty)
         splash.append(text_area)
         self._text_area_2 = text_area
 
-        print("PracMonTFT OK!")
+        ty += int(y_height * 1.5)
+        text_area = label.Label(little_font, text="Status area", scale=1, color=BLACK, x=tx+5, y=ty)
+        splash.append(text_area)
+        self._text_area_3 = text_area
+
+        ty += 12
+        text_area = label.Label(little_font, text="12345678901234567890", scale=1, color=BLACK, x=tx+5, y=ty)
+        splash.append(text_area)
+        self._text_area_4 = text_area
+
+        print(f"{__name__} OK!")
 
 
     def set_text_1(self, text):
@@ -116,12 +116,25 @@ class TFT144Display():
     def set_text_2_color(self, color):
         self._text_area_2.color = color
 
+    def set_text_3(self, text):
+        self._text_area_3.text = text
+    
+    def set_text_status(self, text):
+        t1 = text
+        t2 = ""
+        if len(t1) > 20:
+            t1 = text[0:19]
+            t2 = text[20:40]
+        self._text_area_3.text = t1
+        self._text_area_4.text = t2
+
     # label can only change color
     def set_label_1_color(self, color):
         self._label_1.color = color
 
     def set_label_2_color(self, color):
         self._label_2.color = color
+
 
     def set_display_practice_mode(self, practice_mode):
 
@@ -136,53 +149,58 @@ class TFT144Display():
             self.set_label_2_color(TEXT_COLOR_ACTIVE)
             self.set_text_2_color(TEXT_COLOR_ACTIVE)
 
+    def blank_screen(self):
+        print("TFT144Display has no blank_screen - needed?")
 
-print("Creating PracMonTFT....")
+def test():
+    """"Example code."""
+        
+    print("Creating TFT144Display....")
 
-disp = TFT144Display(board.D5, board.D6, board.D9)
-
-
-# disp.set_text_1("1:23:45")
-# disp.set_text_2("2:34:56")
-
-# time.sleep(2)
-# print("change color")
-# disp.set_text_1("9:55:55")
-# # disp.set_text_2_color(TEXT_COLOR_INACTIVE)
-# # disp.set_label_2_color(TEXT_COLOR_INACTIVE)
-# disp.set_display_practice_mode(True)
+    disp = TFT144Display(board.D5, board.D6, board.D9)
 
 
-def increment_time(h, m, s):
-    """Return (h,m,s)"""
-    s += 1
-    if s == 60:
-        m += 1
-        s = 0
-    if m == 60:
-        h += 1
-        m = 0
-    return h, m, s
+    # disp.set_text_1("1:23:45")
+    # disp.set_text_2("2:34:56")
 
-h_prac = 0
-m_prac = 0
-s_prac = 0
+    # time.sleep(2)
+    # print("change color")
+    # disp.set_text_1("9:55:55")
+    # # disp.set_text_2_color(TEXT_COLOR_INACTIVE)
+    # # disp.set_label_2_color(TEXT_COLOR_INACTIVE)
+    # disp.set_display_practice_mode(True)
 
-h_play = 0
-m_play = 0
-s_play = 0
 
-practice = True
-while True:
-    disp.set_display_practice_mode(practice)
-    r = random.randint(15, 30)
-    for i in range(r):
-        if practice:
-            h_prac, m_prac, s_prac = increment_time(h_prac, m_prac, s_prac)
-            disp.set_text_1(f" {h_prac:01}:{m_prac:02}:{s_prac:02}")
-        else:
-            h_play, m_play, s_play = increment_time(h_play, m_play, s_play)
-            disp.set_text_2(f" {h_play:01}:{m_play:02}:{s_play:02}")
-        time.sleep(.1)
-    practice = not practice
+    def increment_time(h, m, s):
+        """Return (h,m,s)"""
+        s += 1
+        if s == 60:
+            m += 1
+            s = 0
+        if m == 60:
+            h += 1
+            m = 0
+        return h, m, s
+
+    h_prac = 0
+    m_prac = 0
+    s_prac = 0
+
+    h_play = 0
+    m_play = 0
+    s_play = 0
+
+    practice = True
+    while True:
+        disp.set_display_practice_mode(practice)
+        r = random.randint(15, 30)
+        for i in range(r):
+            if practice:
+                h_prac, m_prac, s_prac = increment_time(h_prac, m_prac, s_prac)
+                disp.set_text_1(f" {h_prac:01}:{m_prac:02}:{s_prac:02}")
+            else:
+                h_play, m_play, s_play = increment_time(h_play, m_play, s_play)
+                disp.set_text_2(f" {h_play:01}:{m_play:02}:{s_play:02}")
+            time.sleep(.1)
+        practice = not practice
 
