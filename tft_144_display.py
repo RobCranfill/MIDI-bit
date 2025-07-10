@@ -40,10 +40,11 @@ class TFT144Display():
     """Display based on Adafruit 1.44" TFT"""
 
     def __init__(self, pin_cs, pin_dc, pin_reset):
-        
+        """Construct a display object; indicate the 3 pins - in addition to SCK, MI, and MO - that are used."""
         # Important!
         displayio.release_displays()
 
+        # This uses the standard SCK, MI, and MO pins.
         spi = board.SPI()
 
         display_bus = FourWire(spi, command=pin_dc, chip_select=pin_cs, reset=pin_reset)
@@ -91,13 +92,15 @@ class TFT144Display():
         splash.append(text_area)
         self._text_area_2 = text_area
 
+        # Two little ones at the bottom for status.
+        tx = 4
         ty += int(y_height * 1.5)
-        text_area = label.Label(little_font, text="Status area", scale=1, color=BLACK, x=tx+5, y=ty)
+        text_area = label.Label(little_font, text="", scale=1, color=BLACK, x=tx, y=ty)
         splash.append(text_area)
         self._text_area_3 = text_area
 
         ty += 12
-        text_area = label.Label(little_font, text="12345678901234567890", scale=1, color=BLACK, x=tx+5, y=ty)
+        text_area = label.Label(little_font, text="", scale=1, color=BLACK, x=tx, y=ty)
         splash.append(text_area)
         self._text_area_4 = text_area
 
@@ -120,11 +123,12 @@ class TFT144Display():
         self._text_area_3.text = text
     
     def set_text_status(self, text):
+        MAX_CHARS = 20
         t1 = text
         t2 = ""
-        if len(t1) > 20:
-            t1 = text[0:19]
-            t2 = text[20:40]
+        if len(t1) > MAX_CHARS:
+            t1 = text[0:MAX_CHARS]
+            t2 = text[MAX_CHARS:MAX_CHARS*2]
         self._text_area_3.text = t1
         self._text_area_4.text = t2
 
@@ -150,15 +154,16 @@ class TFT144Display():
             self.set_text_2_color(TEXT_COLOR_ACTIVE)
 
     def blank_screen(self):
-        print("TFT144Display has no blank_screen - needed?")
+        # print("TFT144Display has no blank_screen - needed?")
+        pass
+
 
 def test():
     """"Example code."""
-        
+
     print("Creating TFT144Display....")
 
     disp = TFT144Display(board.D5, board.D6, board.D9)
-
 
     # disp.set_text_1("1:23:45")
     # disp.set_text_2("2:34:56")

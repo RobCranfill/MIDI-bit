@@ -1,21 +1,22 @@
-"""MIDI-bit - A fitbit for your MIDI keyboard
- Version 2, with larger LED display.
+"""MIDI-bit - A fitbit for your MIDI keyboard.
+ Version 2, with larger LED display and more functions.
 
 (c)2025 Rob Cranfill
 
 See https://github.com/RobCranfill/MIDI-bit
 
 Version 1 - Minimum Viable Product - Just keeps track of elapsed time spent practicing.
+Version 2 - Add practice/play mode.
 
 For CircuitPython, on the device known as 
 "Adafruit Feather RP2040 with USB Type A Host" (whew!)
 (Adafruit Product ID: 5723)
 
 To force startup mode,
-
-import microcontroller
-microcontroller.nvm[0] = 0x12 # for run
-microcontroller.nvm[0] = 0x34 # for dev
+    import microcontroller
+    microcontroller.nvm[0] = 0x12 # for run
+  or
+    microcontroller.nvm[0] = 0x34 # for dev
 
 """
 
@@ -217,12 +218,11 @@ def try_write_session_data(dev_mode, disp, seconds):
 
         # we expect write errors in dev mode.
         if dev_mode:
-            print("Can't write, as expected")
-            display_message_for_a_bit(disp, "FAILED TO SAVE - OK")
-
+            print("Can't write, as expected in dev mode.")
+            display_message_for_a_bit(disp, "FAILED TO SAVE - OK", delay=5)
         else:
             print(f"Can't write! {e}")
-            display_message_for_a_bit(disp, "FAILED TO SAVE!")
+            display_message_for_a_bit(disp, "FAILED TO SAVE!", delay=5)
 
 
 def toggle_boot_mode(disp):
@@ -233,9 +233,9 @@ def toggle_boot_mode(disp):
     display_message_for_a_bit(disp, f"Dev: {nvm_dev_mode}")
 
 def display_message_for_a_bit(disp, text, delay=2):
-    disp.set_text_2(str(text))
+    disp.set_text_status(str(text))
     time.sleep(delay)
-    disp.set_text_2("")
+    disp.set_text_status("")
 
 
 
@@ -257,20 +257,19 @@ def main():
 
 
     # The display.
-    # FIXME: exeption handling not quite right
+    # FIXME: exeption?
     display = None
-
     display = tft_144_display.TFT144Display(board.D5, board.D6, board.D9)
     print("Created TFT display")
-
     if display == None:
         print("Can't init display??")
-        while True:
-            pass
+        return
 
+    # display.set_text_status("This still yet another test that should wrap.")
+    # time.sleep(4)
+    
 
     last_event_time = time.monotonic()
-
     in_session = False
     session_start_time = 0
 
@@ -290,7 +289,7 @@ def main():
     # A state machine to watch for the "toggle boot mode" sequence.
     msm_toggle_boot = midi_state_machine.midi_state_machine(MIDI_TRIGGER_SEQ_TOGGLE_BOOT)
 
-    # # For testing shit
+    # # For testing stuff
     # msm_test = midi_state_machine.midi_state_machine(MIDI_TRIGGER_SEQ_TEST)
 
     # wait for USB ready??? nope
@@ -357,7 +356,7 @@ def main():
 
             last_event_time = time.monotonic()
 
-            display.set_text_2(spin())
+            display.set_text_status(spin())
 
             if not in_session:
                 print("\nStarting session")
@@ -408,7 +407,7 @@ def main():
 
                 # print("\nSESSION_TIMEOUT!")
                 in_session = False
-                display.set_text_2("")
+                display.set_text_status("")
 
                 total_seconds += session_length
 
