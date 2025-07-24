@@ -71,7 +71,7 @@ SETTINGS_NAME = "pm_settings.text"
 MIDI_TRIGGER_SEQ_PREFIX = (67, 67, 67, 63, 65, 65, 65, 62)
 MIDI_TRIGGER_SEQ_RESET = MIDI_TRIGGER_SEQ_PREFIX + (60,) # middle C
 MIDI_TRIGGER_SEQ_TOGGLE_BOOT = MIDI_TRIGGER_SEQ_PREFIX + (62,) # D above middle C
-MIDI_TRIGGER_SEQ_TEST = MIDI_TRIGGER_SEQ_PREFIX + (64,) # E
+# MIDI_TRIGGER_SEQ_TEST = MIDI_TRIGGER_SEQ_PREFIX + (64,) # E
 MIDI_TRIGGER_SEQ_TOGGLE_PRAC_PLAY = MIDI_TRIGGER_SEQ_PREFIX + (65,) # F
 
 
@@ -287,6 +287,8 @@ def main():
 
     # display.set_text_status("This still yet another test that should wrap.")
     # time.sleep(4)
+
+    display.set_display_practice_mode(practice_not_play_mode)
     
 
     last_event_time = time.monotonic()
@@ -331,10 +333,11 @@ def main():
 
             print("MEL loking for MIDI....")
 
-            # TODO: check for None?
+            # Wait for a MIDI device....
             midi_device = find_midi_device(display)
             print("  back from find_midi_device")
 
+            # TODO: check for None?
             # stop screen timeout immediately after finding ?
             last_event_time = time.monotonic()
 
@@ -364,7 +367,7 @@ def main():
         event_time = time.monotonic()
 
 
-        # Got MIDI? 
+        # Got MIDI?
         if msg:
             msg_number += 1
 
@@ -416,6 +419,10 @@ def main():
                     print(f"* Got MIDI_TRIGGER_SEQ_TOGGLE_PRAC_PLAY!")
                     practice_not_play_mode = not practice_not_play_mode
 
+                    display.set_display_practice_mode(practice_not_play_mode)
+
+                    # TODO: this ends the previous prac/play session; need to start a new one
+                    # FIXME: WHEN DOES OLD SESSION END??? HOW DO WE DIVIDE UP THE PRAC/PLAY TIME????
 
                 # if msm_force_write.note(msg.note):
                 #     # don't update total_seconds_prac yet, but write the new value
@@ -438,7 +445,10 @@ def main():
                 in_session = False
                 display.set_text_status("")
 
-                total_seconds_prac += session_length
+                if practice_not_play_mode:
+                    total_seconds_prac += session_length
+                else:
+                    total_seconds_play += session_length
 
                 try_write_session_data(in_dev_mode, display, total_seconds_prac, total_seconds_play)
 
@@ -450,11 +460,17 @@ def main():
                 session_length = time.monotonic() - session_start_time
                 # print(f"  Session now {as_hms(session_length)}")
 
-                new_total = total_seconds_prac + session_length
-                if last_displayed_time_prac != int(new_total):
-                    last_displayed_time_prac = int(new_total)
-                    # print(f" updating at {last_displayed_time_prac}")
-                    show_total_time(display, new_total, 666)
+                if practice_not_play_mode:
+                    new_total = total_seconds_prac + session_length
+                    if last_displayed_time_prac != int(new_total):
+                        last_displayed_time_prac = int(new_total)
+                        print(f" updating at {last_displayed_time_prac=}")
+                else:
+                    new_total = total_seconds_play + session_length
+                    if last_displayed_time_play != int(new_total):
+                        last_displayed_time_play = int(new_total)
+                        print(f" updating at {last_displayed_time_play=}")
+                show_total_time(display, last_displayed_time_prac, last_displayed_time_play)
 
         else:
             # print("  not in session...")
@@ -470,4 +486,6 @@ def main():
                     idle_led_blip_time = time.monotonic()
 
 
+# Run the code!
 main()
+
