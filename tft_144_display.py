@@ -20,6 +20,7 @@ import time
 import board
 import displayio
 
+import adafruit_imageload
 from adafruit_bitmap_font import bitmap_font
 from adafruit_display_text import label
 from adafruit_st7735r import ST7735R
@@ -28,7 +29,7 @@ import terminalio
 
 
 TEXT_COLOR_ACTIVE   = 0x00_00_00
-TEXT_COLOR_INACTIVE = 0xA0_A0_A0
+TEXT_COLOR_INACTIVE = 0x80_80_80
 BACKGROUND_COLOR = 0xA0_A0_A0
 
 BLACK = 0x000000
@@ -54,16 +55,55 @@ class TFT144Display():
         display.rotation = 90
 
 
-        # Make the display context
-        splash = displayio.Group()
-        display.root_group = splash
+##################################### Using OnDiskBitmap
 
-        color_bitmap = displayio.Bitmap(WIDTH, HEIGHT, 1)
-        color_palette = displayio.Palette(1)
-        color_palette[0] = BACKGROUND_COLOR
+        # bitmap = displayio.OnDiskBitmap("bmps/stones.bmp")
 
-        bg_sprite = displayio.TileGrid(color_bitmap, pixel_shader=color_palette, x=0, y=0)
-        splash.append(bg_sprite)
+        # # Create a TileGrid to hold the bitmap
+        # splash = displayio.TileGrid(bitmap, pixel_shader=bitmap.pixel_shader)
+
+        # # Create a Group to hold the TileGrid
+        # bg_group = displayio.Group()
+
+        # # Add the TileGrid to the Group
+        # bg_group.append(splash)
+
+        # # Add the Group to the Display
+        # display.root_group = bg_group
+
+
+##################################### Using ImageLoad
+
+
+        bitmap, palette = adafruit_imageload.load("bmps/cork.bmp",
+                                                bitmap=displayio.Bitmap,
+                                                palette=displayio.Palette)
+
+        # Create a TileGrid to hold the bitmap
+        tile_grid = displayio.TileGrid(bitmap, pixel_shader=palette)
+
+        # Create a Group to hold the TileGrid
+        group = displayio.Group()
+
+        # Add the TileGrid to the Group
+        group.append(tile_grid)
+
+        # Add the Group to the Display
+        display.root_group = group
+
+
+##################################### Old start code - solid color
+
+        # # Make the display context
+        # splash = displayio.Group()
+        # display.root_group = splash
+
+        # color_bitmap = displayio.Bitmap(WIDTH, HEIGHT, 1)
+        # color_palette = displayio.Palette(1)
+        # color_palette[0] = BACKGROUND_COLOR
+
+        # bg_sprite = displayio.TileGrid(color_bitmap, pixel_shader=color_palette, x=0, y=0)
+        # splash.append(bg_sprite)
 
 
         little_font = terminalio.FONT
@@ -74,55 +114,61 @@ class TFT144Display():
         tx = 2
         ty = 10
         lab = label.Label(big_font, text="Practice", scale=1, color=BLACK, x=tx, y=ty)
-        splash.append(lab)
+        group.append(lab)
         self._label_1 = lab
 
         ty += y_height
         text_area = label.Label(big_font, text="0:00:00", scale=1, color=BLACK, x=tx+5, y=ty)
-        splash.append(text_area)
+        group.append(text_area)
         self._text_area_1 = text_area
 
         ty += y_height + 5
         lab = label.Label(big_font, text="Play", scale=1, color=BLACK, x=tx, y=ty)
-        splash.append(lab)
+        group.append(lab)
         self._label_2 = lab
 
         ty += y_height
         text_area = label.Label(big_font, text="0:00:00", scale=1, color=BLACK, x=tx+5, y=ty)
-        splash.append(text_area)
+        group.append(text_area)
         self._text_area_2 = text_area
 
         # Two little ones at the bottom for status.
         tx = 4
         ty += int(y_height * 1.5)
         text_area = label.Label(little_font, text="", scale=1, color=BLACK, x=tx, y=ty)
-        splash.append(text_area)
+        group.append(text_area)
         self._text_area_3 = text_area
 
         ty += 12
         text_area = label.Label(little_font, text="", scale=1, color=BLACK, x=tx, y=ty)
-        splash.append(text_area)
+        group.append(text_area)
         self._text_area_4 = text_area
 
         print(f"{__name__} OK!")
 
 
     def set_text_1(self, text):
+        # print(f"{__name__}: set_text_1 '{text}'")
         self._text_area_1.text = text
 
     def set_text_1_color(self, color):
         self._text_area_1.color = color
 
     def set_text_2(self, text):
+        # print(f"{__name__}: set_text_2 '{text}'")
         self._text_area_2.text = text
 
     def set_text_2_color(self, color):
         self._text_area_2.color = color
 
-    def set_text_3(self, text):
-        self._text_area_3.text = text
+    # def set_text_3(self, text):
+    #     print(f"{__name__}: set_text_3 '{text}'")
+    #     self._text_area_3.text = text
     
+    # now set areas 3 and 4 via "status"
+
     def set_text_status(self, text):
+        """Displays in area 3, with overflow to area 4 if needed. Max 20 chars each."""
         MAX_CHARS = 20
         t1 = text
         t2 = ""
@@ -141,7 +187,7 @@ class TFT144Display():
 
 
     def set_display_practice_mode(self, practice_mode):
-
+        """Toggle the display mode - setting active/inactive color."""
         if practice_mode:
             self.set_label_1_color(TEXT_COLOR_ACTIVE)
             self.set_text_1_color(TEXT_COLOR_ACTIVE)
