@@ -312,6 +312,7 @@ def main():
     # A state machine to watch for the "toggle boot mode" sequence.
     msm_toggle_boot = midi_state_machine.midi_state_machine(MIDI_TRIGGER_SEQ_TOGGLE_BOOT)
 
+    # State machine to catch command to toggle practice/play mode.
     msm_toggle_practice_play = midi_state_machine.midi_state_machine(MIDI_TRIGGER_SEQ_TOGGLE_PRAC_PLAY)
 
     # # For testing stuff
@@ -363,9 +364,7 @@ def main():
             midi_device = None
             continue
 
-
         event_time = time.monotonic()
-
 
         # Got MIDI?
         if msg:
@@ -399,8 +398,10 @@ def main():
                     # print("note off!")
                     continue
 
+                # Is it a MIDI state machine command?
+                #
                 if msm_reset.note(msg.note):
-                    print(f"* Got {MIDI_TRIGGER_SEQ_RESET=}")
+                    print("* Got MIDI_TRIGGER_SEQ_RESET")
                     total_seconds_prac = 0
                     total_seconds_play = 0
                     last_displayed_time_prac = 0
@@ -411,20 +412,36 @@ def main():
 
                     try_write_session_data(in_dev_mode, display, total_seconds_prac, total_seconds_play)
 
-                if msm_toggle_boot.note(msg.note):
-                    print(f"* Got {MIDI_TRIGGER_SEQ_TOGGLE_BOOT=}")
+                elif msm_toggle_boot.note(msg.note):
+                    print("* Got MIDI_TRIGGER_SEQ_TOGGLE_BOOT")
                     toggle_boot_mode(display)
 
-                if msm_toggle_practice_play.note(msg.note):
-                    print(f"* Got MIDI_TRIGGER_SEQ_TOGGLE_PRAC_PLAY!")
-                    practice_not_play_mode = not practice_not_play_mode
-
-                    display.set_display_practice_mode(practice_not_play_mode)
+                elif msm_toggle_practice_play.note(msg.note):
+                    print("* Got MIDI_TRIGGER_SEQ_TOGGLE_PRAC_PLAY!")
 
                     # TODO: this ends the previous prac/play session; need to start a new one
                     # FIXME: WHEN DOES OLD SESSION END??? HOW DO WE DIVIDE UP THE PRAC/PLAY TIME????
 
-                # if msm_force_write.note(msg.note):
+                    print(f" * MIDI escape start - {msm_toggle_practice_play.get_seq_start_time()=}")
+
+                    print(f" - before adjust {total_seconds_prac=}, {total_seconds_play=}")
+
+                    time_to_subtract = time.monotonic() - msm_toggle_practice_play.get_seq_start_time()
+                    print(f" - offset {} by {time_to_subtract=}")
+                    if practice_not_play_mode:
+                        total_seconds_prac -= time_to_subtract
+                    else:
+                        total_seconds_play -= time_to_subtract
+
+                    print(f" - after adjust {total_seconds_prac=}, {total_seconds_play=}")
+
+                    practice_not_play_mode = not practice_not_play_mode
+
+                    show_total_time(display, total_seconds_prac, total_seconds_play)
+                    display.set_display_practice_mode(practice_not_play_mode)
+ 
+
+                # elif msm_force_write.note(msg.note):
                 #     # don't update total_seconds_prac yet, but write the new value
                 #     total_seconds_temp = total_seconds_prac + session_length
                 #     print(f"* Force write: {total_seconds_prac=}, {total_seconds_temp=}")
@@ -464,12 +481,12 @@ def main():
                     new_total = total_seconds_prac + session_length
                     if last_displayed_time_prac != int(new_total):
                         last_displayed_time_prac = int(new_total)
-                        print(f" updating at {last_displayed_time_prac=}")
+                        # print(f" updating at {last_displayed_time_prac=}")
                 else:
                     new_total = total_seconds_play + session_length
                     if last_displayed_time_play != int(new_total):
                         last_displayed_time_play = int(new_total)
-                        print(f" updating at {last_displayed_time_play=}")
+                        # print(f" updating at {last_displayed_time_play=}")
                 show_total_time(display, last_displayed_time_prac, last_displayed_time_play)
 
         else:

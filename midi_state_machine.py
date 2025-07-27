@@ -37,7 +37,7 @@ class midi_state_machine:
 
         if new_note != self.note_list_[self._last_hit + 1]:
 
-            # First in the sequence? (FIXME: Is this check out of order?)
+            # Not next in the sequence, but a new first note?
             if new_note == self.note_list_[0]:
                 self.debug_print("  Note is first in sequence")
                 self._last_hit = 0
@@ -53,8 +53,12 @@ class midi_state_machine:
         self._last_hit += 1
         self.debug_print(f"  Note is a hit! Now at index {self._last_hit} of target")
 
+        # Keep track of time of first hit.
+        if self._last_hit == 0:
+            self._first_hit_time = time.monotonic()
+
         if self._last_hit < len(self.note_list_) - 1:
-            self.debug_print(f"  Not at end of list yet ")
+            self.debug_print("  Not at end of list yet ")
             return False
 
         self.debug_print(" ^^^ Complete!")

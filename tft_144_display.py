@@ -75,7 +75,7 @@ class TFT144Display():
 ##################################### Using ImageLoad
 
 
-        bitmap, palette = adafruit_imageload.load("bmps/cork.bmp",
+        bitmap, palette = adafruit_imageload.load("background.bmp",
                                                 bitmap=displayio.Bitmap,
                                                 palette=displayio.Palette)
 
