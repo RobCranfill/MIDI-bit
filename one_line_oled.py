@@ -6,7 +6,7 @@ import terminalio
 from adafruit_bitmap_font import bitmap_font
 from adafruit_display_text import label
 import adafruit_displayio_ssd1306
-
+import i2cdisplaybus
 
 # FONT_PATH = "fonts/LeagueSpartan-Bold-22.bdf"
 FONT_PATH = "fonts/cmuntb22.bdf"
@@ -24,7 +24,7 @@ class one_line_oled:
             print("Is the I2C wiring correct?")
             return
 
-        display_bus = displayio.I2CDisplay(i2c, device_address=0x3C)
+        display_bus = i2cdisplaybus.I2CDisplayBus(i2c, device_address=0x3C)
         WIDTH = 128
         HEIGHT = 32
         display = adafruit_displayio_ssd1306.SSD1306(display_bus, width=WIDTH, height=HEIGHT)
